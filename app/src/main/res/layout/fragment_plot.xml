@@ -1,0 +1,89 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Live Recording Plots"
+        android:textAlignment="center"
+        android:textColor="#3264a8"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <!-- Acceleration plot title -->
+    <TextView
+        android:id="@+id/accelPlotTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Acceleration vs Time"
+        android:textAlignment="center"
+        android:textStyle="bold" />
+
+    <!-- Y-axis label and Acceleration chart -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <!-- Y-axis label rotated -->
+
+        <!-- Chart -->
+        <TextView
+            android:layout_width="50dp"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="8dp"
+            android:rotation="-90"
+            android:text="m/s²"
+            android:textStyle="bold" />
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/lineChartAccel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:padding="8dp" />
+    </LinearLayout>
+
+    <!-- Angular Velocity plot title -->
+    <TextView
+        android:id="@+id/gyroPlotTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Angular Velocity vs Time"
+        android:textAlignment="center"
+        android:textStyle="bold" />
+
+    <!-- Y-axis label and Angular Velocity chart -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <!-- Y-axis label rotated -->
+        <TextView
+            android:layout_width="50dp"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="8dp"
+            android:rotation="-90"
+            android:text="°/s"
+            android:textStyle="bold" />
+
+        <!-- Chart -->
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/lineChartGyro"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:padding="8dp" />
+    </LinearLayout>
+</LinearLayout>

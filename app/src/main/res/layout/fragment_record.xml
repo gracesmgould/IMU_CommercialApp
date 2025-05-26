@@ -1,0 +1,138 @@
+<!-- fragment_recording.xml -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp">
+
+
+        <TextView
+            android:id="@+id/txtAppName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="50dp"
+            android:text="HuMBL Smartphone IMU Recording App"
+            android:textAlignment="center"
+            android:textColor="#3264a8"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtRecordingProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/exportBtn"
+            android:layout_centerHorizontal="true"
+            android:layout_margin="20dp"
+            android:hint="Recording status will be displayed here"
+            android:textAlignment="center" />
+
+        <TextView
+            android:id="@+id/dataRecSelection"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@+id/editRecordingName"
+            android:layout_marginTop="20dp"
+            android:text="Please select the type of data to be recorded"
+            />
+
+        <EditText
+            android:id="@+id/editRecordingName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/txtAppName"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:hint="Please enter name of recording"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/startBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/checkboxesRelLayout"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:backgroundTint="#3264a8"
+            android:text="Start"
+            android:textColor="@color/white"/>
+        <Button
+            android:id="@+id/eventBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/startBtn"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:text="Event"
+            android:backgroundTint="#1a1aff"
+            android:textColor="@color/white"/>
+
+        <Button
+            android:id="@+id/stopBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/eventBtn"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:text="Stop"
+            android:backgroundTint="#5900b3"
+            android:textColor="@color/white"/>
+
+        <Button
+            android:id="@+id/exportBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/stopBtn"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:text="Export"
+            android:backgroundTint="#b30086"
+            android:textColor="@color/white"/>
+
+
+
+        <RelativeLayout
+            android:id="@+id/checkboxesRelLayout"
+            android:layout_width="wrap_content"
+            android:layout_height= "wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@+id/dataRecSelection"
+            android:layout_marginTop="10dp"
+            >
+
+            <CheckBox
+                android:id="@+id/checkboxLinAccelerometer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:checked="true"
+                android:text="Linear Acceleration"
+                android:textAlignment="viewStart"
+                android:buttonTint="#3264a8"/>
+
+            <CheckBox
+                android:id="@+id/checkboxGyroscope"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Gyroscope"
+                android:checked="true"
+                android:layout_below="@+id/checkboxLinAccelerometer"
+                android:buttonTint="#3264a8"/>
+
+            <CheckBox
+                android:id="@+id/checkboxGPS"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GPS"
+                android:checked="true"
+                android:layout_below="@+id/checkboxGyroscope"
+                android:buttonTint="#3264a8"/>
+        </RelativeLayout>
+
+    </RelativeLayout>
+</ScrollView>
