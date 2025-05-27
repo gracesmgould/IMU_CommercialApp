@@ -27,10 +27,11 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
         // Required empty public constructor
     }
 
-    public interface OnRecordControlListener { //Define interface for notifying Main Activity when start and stop button pressed
-        void onStartRecording();
+    public interface OnRecordControlListener {
+        void onStartRecording(boolean accel, boolean gyro, boolean gps);
         void onStopRecording();
-
+        void onEventRecorded();
+        void onExportRecording(String recordingName);
     }
     // Attach the interface to the activity (listener set-up)
     @Override
@@ -69,33 +70,41 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
         exportBtn.setOnClickListener(this);
         eventBtn.setOnClickListener(this);
 
+        //Automatically have buttons disabled except for start
+        startBtn.setEnabled(true);
+        eventBtn.setEnabled(false);
+        stopBtn.setEnabled(false);
+        exportBtn.setEnabled(false);
         return view;
     }
 
     @Override
     public void onClick(View v) {
 
-        if (recordingControlListener != null){ //Signal Main Activity to start live plotting
-            recordingControlListener.onStartRecording();
-        }
+
 
         if (v.getId() == R.id.startBtn) {
             Toast.makeText(getActivity(), "Recording: " + recordingID.getText().toString() + " has started", Toast.LENGTH_LONG).show();
             txtRecProgress.setText("Recording in Progress");
 
+            //Enable event button and stop button, disable start button once pressed
             startBtn.setEnabled(false);
             eventBtn.setEnabled(true);
             stopBtn.setEnabled(true);
 
-            if (checkBoxAccel.isChecked()) {
-                // TODO: Start recording linear accelerometer data
+            // Disable checkboxes to lock selections
+            checkBoxAccel.setEnabled(false);
+            checkBoxGyro.setEnabled(false);
+            checkBoxGPS.setEnabled(false);
+
+            if (recordingControlListener != null){ //Signal Main Activity to start live plotting
+                recordingControlListener.onStartRecording(
+                        checkBoxAccel.isChecked(),
+                        checkBoxGyro.isChecked(),
+                        checkBoxGPS.isChecked()
+                );
             }
-            if (checkBoxGyro.isChecked()) {
-                // TODO: Start recording gyroscope data
-            }
-            if (checkBoxGPS.isChecked()) {
-                // TODO: Start recording GPS data
-            }
+
 
         } else if (v.getId() == R.id.eventBtn) {
             Toast.makeText(getActivity(), "Event time point has been recorded", Toast.LENGTH_SHORT).show();
@@ -105,18 +114,21 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             Toast.makeText(getActivity(), "Recording: " + recordingID.getText().toString() + " has stopped", Toast.LENGTH_SHORT).show();
             txtRecProgress.setText("Recording has stopped");
 
+            //Enable export and start buttons, disable event and stop.
             startBtn.setEnabled(true);
             eventBtn.setEnabled(false);
             stopBtn.setEnabled(false);
-            // TODO: Stop recording
+            exportBtn.setEnabled(true);
 
             if (recordingControlListener != null){ //Signal Main Activity to stop live plotting
                 recordingControlListener.onStopRecording();
             }
 
         } else if (v.getId() == R.id.exportBtn) {
+            if (recordingControlListener != null) {
+                recordingControlListener.onExportRecording(recordingID.getText().toString());
+            }
             Toast.makeText(getActivity(), "Exporting " + recordingID.getText().toString() + " data", Toast.LENGTH_SHORT).show();
-            // TODO: Save or upload CSV
         }
     }
 
