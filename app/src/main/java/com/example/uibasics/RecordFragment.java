@@ -33,6 +33,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
         void onEventRecorded();
         void onExportRecording(String recordingName);
     }
+
     // Attach the interface to the activity (listener set-up)
     @Override
     public void onAttach(@NonNull Context context) {
@@ -53,10 +54,25 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
 
         // Initialize UI references
         txtRecProgress = view.findViewById(R.id.txtRecordingProgress);
-        recordingID = view.findViewById(R.id.editRecordingName);
         checkBoxAccel = view.findViewById(R.id.checkboxLinAccelerometer);
         checkBoxGyro = view.findViewById(R.id.checkboxGyroscope);
         checkBoxGPS = view.findViewById(R.id.checkboxGPS);
+        recordingID = view.findViewById(R.id.editRecordingName);
+
+        //Collapse keyboard after entering recording name by clicking return
+        recordingID.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                android.view.inputmethod.InputMethodManager imm =
+                        (android.view.inputmethod.InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(recordingID.getWindowToken(), 0);
+                recordingID.clearFocus();
+                return true;
+            }
+            return false;
+        });
+
+
+
 
         //Set buttons
         startBtn = view.findViewById(R.id.startBtn);
@@ -80,9 +96,6 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
 
     @Override
     public void onClick(View v) {
-
-
-
         if (v.getId() == R.id.startBtn) {
             Toast.makeText(getActivity(), "Recording: " + recordingID.getText().toString() + " has started", Toast.LENGTH_LONG).show();
             txtRecProgress.setText("Recording in Progress");
@@ -97,7 +110,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             checkBoxGyro.setEnabled(false);
             checkBoxGPS.setEnabled(false);
 
-            if (recordingControlListener != null){ //Signal Main Activity to start live plotting
+            if (recordingControlListener != null){ //Signal Main Activity to start recording and live plotting
                 recordingControlListener.onStartRecording(
                         checkBoxAccel.isChecked(),
                         checkBoxGyro.isChecked(),
@@ -105,10 +118,11 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
                 );
             }
 
-
         } else if (v.getId() == R.id.eventBtn) {
             Toast.makeText(getActivity(), "Event time point has been recorded", Toast.LENGTH_SHORT).show();
-            // TODO: Log event timestamp
+            if(recordingControlListener !=null){
+                recordingControlListener.onEventRecorded(); //Tells MainActivity to record event
+            }
 
         } else if (v.getId() == R.id.stopBtn) {
             Toast.makeText(getActivity(), "Recording: " + recordingID.getText().toString() + " has stopped", Toast.LENGTH_SHORT).show();

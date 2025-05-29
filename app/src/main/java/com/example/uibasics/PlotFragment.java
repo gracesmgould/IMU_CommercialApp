@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,52 +30,17 @@ public class PlotFragment extends Fragment {
     private int timeIndex = 0;
     private boolean shouldStartSimulating = false; // NEW
 
-    private Runnable simulationRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (isSimulating) {
-                // Generate random values
-                float randomAccel = -10 + new Random().nextFloat() * 20;
-                float randomGyro = -200 + new Random().nextFloat() * 400;
-
-                float currentTime = timeIndex * 0.1f; // 0.1s sampling period
-
-                // Update charts
-                accelDataSet.addEntry(new Entry(currentTime, randomAccel));
-                lineChartAccel.getData().notifyDataChanged();
-                lineChartAccel.notifyDataSetChanged();
-
-                gyroDataSet.addEntry(new Entry(currentTime, randomGyro));
-                lineChartGyro.getData().notifyDataChanged();
-                lineChartGyro.notifyDataSetChanged();
-
-                // Rolling window (5s)
-                float windowSize = 5.0f;
-                lineChartAccel.getXAxis().setAxisMinimum(currentTime - windowSize);
-                lineChartAccel.getXAxis().setAxisMaximum(currentTime);
-
-                lineChartGyro.getXAxis().setAxisMinimum(currentTime - windowSize);
-                lineChartGyro.getXAxis().setAxisMaximum(currentTime);
-
-                // Redraw
-                lineChartAccel.invalidate();
-                lineChartGyro.invalidate();
-
-                timeIndex++;
-                handler.postDelayed(this, 100);
-            }
-        }
-    };
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_plot, container, false);
+
+        Log.d("PlotFragment", "onCreateView: PlotFragment is initialized!");
 
         lineChartAccel = view.findViewById(R.id.lineChartAccel);
         lineChartGyro = view.findViewById(R.id.lineChartGyro);
 
         // Accel chart setup
-        accelDataSet = new LineDataSet(new ArrayList<>(), "Simulated Accel");
+        accelDataSet = new LineDataSet(new ArrayList<>(), "Acceleration vs Time");
         accelDataSet.setColor(Color.parseColor("#5900b3"));
         accelDataSet.setLineWidth(2f);
         accelDataSet.setDrawCircles(false);
@@ -86,7 +52,11 @@ public class PlotFragment extends Fragment {
         lineChartAccel.getDescription().setEnabled(false);
 
         // Gyro chart setup
-        gyroDataSet = new LineDataSet(new ArrayList<>(), "Simulated Gyro");
+        gyroDataSet = new LineDataSet(new ArrayList<>(), "Angular Velocity vs Time");
+        XAxis xAxisGyro = lineChartGyro.getXAxis();
+        xAxisGyro.setGranularity(0.1f);
+        xAxisGyro.setDrawGridLines(false);
+        xAxisGyro.setLabelRotationAngle(0f);
         gyroDataSet.setColor(Color.parseColor("#3264a8"));
         gyroDataSet.setLineWidth(2f);
         gyroDataSet.setDrawCircles(false);
@@ -97,44 +67,40 @@ public class PlotFragment extends Fragment {
         lineChartGyro.getAxisLeft().setValueFormatter(new UnitValueFormatter());
         lineChartGyro.getDescription().setEnabled(false);
 
-        if (shouldStartSimulating) {
-            startSimulatingData(); // Safely start now that charts are initialized
-        }
         return view;
-
-
     }
 
-    public void startSimulatingData() {
-        if (lineChartAccel == null || lineChartGyro == null) {
-            // Fragment not ready yet → defer start until onCreateView()
-            shouldStartSimulating = true;
-            return;
-        }
-        if (!isSimulating) {
-            isSimulating = true;
-            timeIndex = 0;
-
-            // Clear and refresh logic
-            accelDataSet.clear();
-            gyroDataSet.clear();
-
-            lineChartAccel.setData(new LineData(accelDataSet));
-            lineChartGyro.setData(new LineData(gyroDataSet));
-
+    public void addAccelData(long timestamp, float accX) {
+        Log.d("PlotFragment", "Adding Accel Data: " + accX);
+        if (accelDataSet != null) {
+            float currentTime = timestamp / 1000.0f; // convert ms → s
+            accelDataSet.addEntry(new Entry(currentTime, accX));
+            lineChartAccel.getData().notifyDataChanged();
             lineChartAccel.notifyDataSetChanged();
-            lineChartAccel.invalidate();
-            lineChartGyro.notifyDataSetChanged();
-            lineChartGyro.invalidate();
 
-            handler.postDelayed(simulationRunnable, 100);
+            // Rolling window
+            float windowSize = 5.0f;
+            lineChartAccel.getXAxis().setAxisMinimum(currentTime - windowSize);
+            lineChartAccel.getXAxis().setAxisMaximum(currentTime);
+
+            lineChartAccel.invalidate();
         }
     }
-    public void stopSimulatingData() {
-        isSimulating = false;
-        handler.removeCallbacks(simulationRunnable);
-    }
+    public void addGyroData(long timestamp, float gyroX) {
+        if (gyroDataSet != null) {
+            float currentTime = timestamp / 1000.0f; // convert ms → s
+            gyroDataSet.addEntry(new Entry(currentTime, gyroX));
+            lineChartGyro.getData().notifyDataChanged();
+            lineChartGyro.notifyDataSetChanged();
 
+            // Rolling window
+            float windowSize = 5.0f;
+            lineChartGyro.getXAxis().setAxisMinimum(currentTime - windowSize);
+            lineChartGyro.getXAxis().setAxisMaximum(currentTime);
+
+            lineChartGyro.invalidate();
+        }
+    }
     public static class UnitValueFormatter extends ValueFormatter {
         @Override
         public String getFormattedValue(float value) {

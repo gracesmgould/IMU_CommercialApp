@@ -1,40 +1,70 @@
 package com.example.uibasics;
 
 import android.content.Context;
+import android.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class DataExport {
-    private ArrayList<String[]> sensorData;
-    private ArrayList<Long> eventTime;
+    private final Map<String, ArrayList<String[]>> sensorDataMap; // Dynamic data for each sensor type
+    private final ArrayList<Long> eventTime;
 
-    public DataExport(ArrayList<String[]> sensorData, ArrayList<Long> eventTime) {
-        this.sensorData = sensorData;
-        this.eventTime = eventTime;
+    public DataExport() {
+        sensorDataMap = new HashMap<>();
+        eventTime = new ArrayList<>();
     }
-    // NEW: Method to add an event timestamp
+
+    // Add a new row of data for a specific sensor
+    public void addSensorRow(String sensorType, String[] row) {
+        if (!sensorDataMap.containsKey(sensorType)) {
+            sensorDataMap.put(sensorType, new ArrayList<>());
+        }
+        sensorDataMap.get(sensorType).add(row);
+    }
+
+    // Add an event timestamp
     public void addEvent(long timeMs) {
         eventTime.add(timeMs);
     }
 
-    public String createCSV(){
+    /*
+    // Build CSV dynamically
+    public String createCSV() {
         StringBuilder sb = new StringBuilder();
 
-        // Sensor Data Section
-        sb.append("# Sensor Data\n");
-        sb.append("timestamp,accX,accY,accZ\n");
-        for (String[] row : sensorData) {
-            sb.append(String.join(",", row)).append("\n");
+        // Sensor Data Sections
+        for (String sensorType : sensorDataMap.keySet()) {
+            sb.append("# ").append(sensorType).append(" Data\n");
+
+            // Add header based on sensor type
+            switch (sensorType) {
+                case "Accelerometer":
+                case "Gyroscope":
+                    sb.append("timestamp,X,Y,Z\n");
+                    break;
+                case "GPS":
+                    sb.append("timestamp,latitude,longitude,altitude\n");
+                    break;
+                default:
+                    sb.append("timestamp,value1,value2,value3\n"); // generic header
+            }
+
+            for (String[] row : sensorDataMap.get(sensorType)) {
+                sb.append(String.join(",", row)).append("\n");
+            }
+            sb.append("\n");
         }
 
         // Events Section
-        sb.append("\n# Events\n");
+        sb.append("# Events\n");
         sb.append("event_time_ms\n");
         for (Long eventTime : eventTime) {
             sb.append(eventTime).append("\n");
@@ -42,33 +72,65 @@ public class DataExport {
 
         return sb.toString();
     }
-    public File exportAsZip(Context context, String fileName) throws IOException {
-        // Create CSV file
-        File csvFile = new File(context.getCacheDir(), fileName + ".csv");
-        FileOutputStream fos = new FileOutputStream(csvFile);
-        fos.write(createCSV().getBytes());
-        fos.close();
+*/
+    public String createCSV() {
+        StringBuilder sb = new StringBuilder();
 
-        // Compress into ZIP
-        File zipFile = new File(context.getCacheDir(), fileName + ".zip");
-        ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
+        // Unified header
+        sb.append("timestamp,accX,accY,accZ,gyroX,gyroY,gyroZ,event_time\n");
 
-        FileInputStream fis = new FileInputStream(csvFile);
-        ZipEntry entry = new ZipEntry(csvFile.getName());
-        zos.putNextEntry(entry);
-
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = fis.read(buffer)) > 0) {
-            zos.write(buffer, 0, len);
+        ArrayList<String[]> rows = sensorDataMap.get("Synchronized");
+        if (rows != null) {
+            for (String[] row : rows) {
+                sb.append(String.join(",", row)).append("\n");
+            }
         }
 
-        zos.closeEntry();
-        zos.close();
-        fis.close();
-
-        return zipFile; // return the ZIP file for sharing/export
+        return sb.toString();
     }
+    public boolean exportAsZip(File zipFile) {
+        try {
+            Log.i("DataExport", "Starting exportAsZip...");
 
+            File csvFile = new File(zipFile.getParent(), zipFile.getName().replace(".zip", ".csv"));
+            Log.i("DataExport", "CSV file path: " + csvFile.getAbsolutePath());
+
+            FileOutputStream fos = new FileOutputStream(csvFile);
+            String csvContent = createCSV();
+            Log.i("DataExport", "CSV content: \n" + csvContent);
+
+            fos.write(csvContent.getBytes());
+            fos.close();
+
+            ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
+            FileInputStream fis = new FileInputStream(csvFile);
+            ZipEntry entry = new ZipEntry(csvFile.getName());
+            zos.putNextEntry(entry);
+
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = fis.read(buffer)) > 0) {
+                zos.write(buffer, 0, len);
+            }
+
+            zos.closeEntry();
+            zos.close();
+            fis.close();
+
+            if (csvFile.exists()) {
+                boolean deleted = csvFile.delete();
+                Log.i("DataExport", "CSV file deleted after ZIP? " + deleted);
+            }
+
+            Log.i("DataExport", "ZIP file created successfully at: " + zipFile.getAbsolutePath());
+            return true; // success
+        } catch (IOException e) {
+            Log.e("DataExport", "Failed to export zip file", e);
+            return false; // error
+        }
+    }
+    public ArrayList<String[]> getSensorData(String sensorType) {
+        return sensorDataMap.get(sensorType);
+    }
 
 }
