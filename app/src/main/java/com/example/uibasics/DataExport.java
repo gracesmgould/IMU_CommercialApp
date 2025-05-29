@@ -22,7 +22,7 @@ public class DataExport {
         eventTime = new ArrayList<>();
     }
 
-    // Add a new row of data for a specific sensor
+    // Add a new row of data for a specific sensor type
     public void addSensorRow(String sensorType, String[] row) {
         if (!sensorDataMap.containsKey(sensorType)) {
             sensorDataMap.put(sensorType, new ArrayList<>());
@@ -30,49 +30,12 @@ public class DataExport {
         sensorDataMap.get(sensorType).add(row);
     }
 
-    // Add an event timestamp
+    // Add an event timestamp when event button clicked
     public void addEvent(long timeMs) {
         eventTime.add(timeMs);
     }
 
-    /*
-    // Build CSV dynamically
-    public String createCSV() {
-        StringBuilder sb = new StringBuilder();
-
-        // Sensor Data Sections
-        for (String sensorType : sensorDataMap.keySet()) {
-            sb.append("# ").append(sensorType).append(" Data\n");
-
-            // Add header based on sensor type
-            switch (sensorType) {
-                case "Accelerometer":
-                case "Gyroscope":
-                    sb.append("timestamp,X,Y,Z\n");
-                    break;
-                case "GPS":
-                    sb.append("timestamp,latitude,longitude,altitude\n");
-                    break;
-                default:
-                    sb.append("timestamp,value1,value2,value3\n"); // generic header
-            }
-
-            for (String[] row : sensorDataMap.get(sensorType)) {
-                sb.append(String.join(",", row)).append("\n");
-            }
-            sb.append("\n");
-        }
-
-        // Events Section
-        sb.append("# Events\n");
-        sb.append("event_time_ms\n");
-        for (Long eventTime : eventTime) {
-            sb.append(eventTime).append("\n");
-        }
-
-        return sb.toString();
-    }
-*/
+    // Build the CSV content string for the dataset
     public String createCSV() {
         StringBuilder sb = new StringBuilder();
 
@@ -88,17 +51,20 @@ public class DataExport {
 
         return sb.toString();
     }
+
+    // Export CSV as zip file to specified location
     public boolean exportAsZip(File zipFile) {
         try {
-            Log.i("DataExport", "Starting exportAsZip...");
+            //Log.i("DataExport", "Starting exportAsZip..."); //Uncomment for debugging
 
             File csvFile = new File(zipFile.getParent(), zipFile.getName().replace(".zip", ".csv"));
-            Log.i("DataExport", "CSV file path: " + csvFile.getAbsolutePath());
+            //Log.i("DataExport", "CSV file path: " + csvFile.getAbsolutePath()); //Uncomment for debugging
 
             FileOutputStream fos = new FileOutputStream(csvFile);
             String csvContent = createCSV();
-            Log.i("DataExport", "CSV content: \n" + csvContent);
+            //Log.i("DataExport", "CSV content: \n" + csvContent); //Uncomment for debugging
 
+            //Write the csv string to a file
             fos.write(csvContent.getBytes());
             fos.close();
 
@@ -117,18 +83,21 @@ public class DataExport {
             zos.close();
             fis.close();
 
+            //Delete temporary csv file
             if (csvFile.exists()) {
                 boolean deleted = csvFile.delete();
-                Log.i("DataExport", "CSV file deleted after ZIP? " + deleted);
+                // Log.i("DataExport", "CSV file deleted after ZIP? " + deleted); //Uncomment for debugging
             }
 
-            Log.i("DataExport", "ZIP file created successfully at: " + zipFile.getAbsolutePath());
+            //Log.i("DataExport", "ZIP file created successfully at: " + zipFile.getAbsolutePath());
             return true; // success
         } catch (IOException e) {
-            Log.e("DataExport", "Failed to export zip file", e);
+            Log.e("DataExport", "Failed to export zip file", e); //Error statement
             return false; // error
         }
     }
+
+    //Method to get sensor data from specific sensor type
     public ArrayList<String[]> getSensorData(String sensorType) {
         return sensorDataMap.get(sensorType);
     }

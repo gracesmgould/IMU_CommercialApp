@@ -7,9 +7,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -26,10 +24,10 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     private DataExport dataExport;
     private long recordingStartTime;
     private boolean isAccelEnabled, isGyroEnabled, isGPSEnabled;
-    private static final int REQUEST_LOCATION_PERMISSION = 1;
+    private static final int REQUEST_LOCATION_PERMISSION = 1; //Request code for GPS permissions
     private IMUDataCollector imuDataCollector;
     private GPSCollector gpsCollector;
-    private PlotFragment plotFragment;
+    private PlotFragment plotFragment; //fragment to plot live data
 
 
     @Override
@@ -37,55 +35,58 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //Checking if gyroscope is on the device - toast message if not available
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         Sensor gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-
-        if (gyroSensor != null) {
-            Log.d("MainActivity", "Gyroscope IS available on this device.");
-        } else {
-            Log.d("MainActivity", "No gyroscope on this device!");
+        if (gyroSensor == null) {
+            //Log.d("MainActivity", "No gyroscope on this device!"); //Uncomment for debugging
+            Toast.makeText(this, "No Gyroscope detected", Toast.LENGTH_SHORT).show();
         }
 
-        // Initialize fragments
+        // Initialize fragments - plot and record
         RecordFragment recordFragment = new RecordFragment();
         plotFragment = new PlotFragment();
 
+        //ViewPager setup- allow for swiping between screens
         ViewPager2 viewPager = findViewById(R.id.viewPager);
         TabLayout tabLayout = findViewById(R.id.tabLayout);
-
         ViewPagerAdapter adapter = new ViewPagerAdapter(this);
         adapter.addFragment(recordFragment, "Record");
         adapter.addFragment(plotFragment, "Plot"); // Pass the same instance!
-
         viewPager.setAdapter(adapter);
 
+        //Links tabs with ViewPager2 (old version (ViewPager) caused issues)
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(adapter.getTitle(position))
         ).attach();
     }
     @Override
     public void onStartRecording(boolean accel, boolean gyro, boolean gps) {
-        Log.d("MainActivity", "onStartRecording called with accel: " + accel + ", gyro: " + gyro + ", gps: " + gps);
+        //Log.d("MainActivity", "onStartRecording called with accel: " + accel + ", gyro: " + gyro + ", gps: " + gps); //Uncomment for debugging of user selection checkboxes
+
+        //User preferences for checkboxes
         isAccelEnabled = accel;
         isGyroEnabled = gyro;
         isGPSEnabled = gps;
 
+        //Record start time
         recordingStartTime = System.currentTimeMillis();
 
         // Initialize dataExporter
         dataExport = new DataExport();
 
-        // Debug: Check plotFragment
-        if (plotFragment != null) {
+        // Debug: Check plotFragment.
+        /*if (plotFragment != null) {
             Log.d("MainActivity", "plotFragment is initialized and ready!");
         } else {
             Log.e("MainActivity", "plotFragment is NULL — no data will be plotted.");
-        }
-        // Start IMU data collection with plotFragment
+        }*/
+
+        // Start collecting IMU data
         imuDataCollector = new IMUDataCollector(this, dataExport, isAccelEnabled, isGyroEnabled, plotFragment);
         imuDataCollector.start();
 
-        // Start GPS data collection
+        // Start GPS data collection (if enabled)
         if (isGPSEnabled) {
             gpsCollector = new GPSCollector(this, dataExport, recordingStartTime);
             gpsCollector.start();

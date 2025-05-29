@@ -2,15 +2,11 @@ package com.example.uibasics;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
 import androidx.fragment.app.Fragment;
-
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -19,22 +15,17 @@ import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 
 import java.util.ArrayList;
-import java.util.Random;
 
 public class PlotFragment extends Fragment {
 
     private LineChart lineChartAccel, lineChartGyro;
     private LineDataSet accelDataSet, gyroDataSet;
-    private Handler handler = new Handler(Looper.getMainLooper());
-    private boolean isSimulating = false;
-    private int timeIndex = 0;
-    private boolean shouldStartSimulating = false; // NEW
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_plot, container, false);
 
-        Log.d("PlotFragment", "onCreateView: PlotFragment is initialized!");
+        //Log.d("PlotFragment", "onCreateView: PlotFragment is initialized!"); //Check if plot has been initialized - uncomment for debugging
 
         lineChartAccel = view.findViewById(R.id.lineChartAccel);
         lineChartGyro = view.findViewById(R.id.lineChartGyro);
@@ -42,6 +33,10 @@ public class PlotFragment extends Fragment {
         // Accel chart setup
         accelDataSet = new LineDataSet(new ArrayList<>(), "Acceleration vs Time");
         accelDataSet.setColor(Color.parseColor("#5900b3"));
+        XAxis xAxisAccel = lineChartAccel.getXAxis();
+        xAxisAccel.setGranularity(0.1f);
+        xAxisAccel.setDrawGridLines(false);
+        xAxisAccel.setLabelRotationAngle(0f);
         accelDataSet.setLineWidth(2f);
         accelDataSet.setDrawCircles(false);
         accelDataSet.setDrawValues(false);
@@ -70,15 +65,16 @@ public class PlotFragment extends Fragment {
         return view;
     }
 
+    //Add accel data to the live chart
     public void addAccelData(long timestamp, float accX) {
-        Log.d("PlotFragment", "Adding Accel Data: " + accX);
+        //Log.d("PlotFragment", "Adding Accel Data: " + accX); //Check if the accel data is being added to the live plot - uncomment for debugging
         if (accelDataSet != null) {
             float currentTime = timestamp / 1000.0f; // convert ms → s
             accelDataSet.addEntry(new Entry(currentTime, accX));
             lineChartAccel.getData().notifyDataChanged();
             lineChartAccel.notifyDataSetChanged();
 
-            // Rolling window
+            // Rolling window - Only show last 5 seconds worth of data on a rolling basis
             float windowSize = 5.0f;
             lineChartAccel.getXAxis().setAxisMinimum(currentTime - windowSize);
             lineChartAccel.getXAxis().setAxisMaximum(currentTime);
@@ -86,6 +82,8 @@ public class PlotFragment extends Fragment {
             lineChartAccel.invalidate();
         }
     }
+
+    //Add gyro data to the live chart
     public void addGyroData(long timestamp, float gyroX) {
         if (gyroDataSet != null) {
             float currentTime = timestamp / 1000.0f; // convert ms → s
@@ -93,7 +91,7 @@ public class PlotFragment extends Fragment {
             lineChartGyro.getData().notifyDataChanged();
             lineChartGyro.notifyDataSetChanged();
 
-            // Rolling window
+            // Rolling window - Only show last 5 seconds worth of data on a rolling basis
             float windowSize = 5.0f;
             lineChartGyro.getXAxis().setAxisMinimum(currentTime - windowSize);
             lineChartGyro.getXAxis().setAxisMaximum(currentTime);
@@ -101,6 +99,8 @@ public class PlotFragment extends Fragment {
             lineChartGyro.invalidate();
         }
     }
+
+    //Formatter for displaying time on the Xaxis of the live plots
     public static class UnitValueFormatter extends ValueFormatter {
         @Override
         public String getFormattedValue(float value) {
