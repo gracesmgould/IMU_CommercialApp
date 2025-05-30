@@ -26,14 +26,12 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
     public RecordFragment() {
         // Required empty public constructor
     }
-
     public interface OnRecordControlListener {
         void onStartRecording(boolean accel, boolean gyro, boolean gps);
         void onStopRecording();
         void onEventRecorded();
         void onExportRecording(String recordingName);
     }
-
     // Attach the interface to the activity (listener set-up)
     @Override
     public void onAttach(@NonNull Context context) {
@@ -44,7 +42,6 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             throw new RuntimeException(context + " must implement OnRecordControlListener");
         }
     }
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -91,7 +88,6 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
 
         return view;
     }
-
     @Override
     public void onClick(View v) { //Once click has been registered by the onClickListener - need to figure out what the click is meant for
         if (v.getId() == R.id.startBtn) {

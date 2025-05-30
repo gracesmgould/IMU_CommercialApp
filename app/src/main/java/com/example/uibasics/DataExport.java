@@ -40,7 +40,7 @@ public class DataExport {
         StringBuilder sb = new StringBuilder();
 
         // Unified header
-        sb.append("timestamp,accX,accY,accZ,gyroX,gyroY,gyroZ,event_time\n");
+        sb.append("timestamp,accX,accY,accZ,gyroX,gyroY,gyroZ,latitude,longitude,event_time\n");
 
         ArrayList<String[]> rows = sensorDataMap.get("Synchronized");
         if (rows != null) {
@@ -55,19 +55,25 @@ public class DataExport {
     // Export CSV as zip file to specified location
     public boolean exportAsZip(File zipFile) {
         try {
-            //Log.i("DataExport", "Starting exportAsZip..."); //Uncomment for debugging
+            Log.d("DataExport", "Starting exportAsZip to: " + zipFile.getAbsolutePath());
 
+            // Create CSV file in the same directory as zip
             File csvFile = new File(zipFile.getParent(), zipFile.getName().replace(".zip", ".csv"));
-            //Log.i("DataExport", "CSV file path: " + csvFile.getAbsolutePath()); //Uncomment for debugging
+            Log.d("DataExport", "CSV file path: " + csvFile.getAbsolutePath());
 
-            FileOutputStream fos = new FileOutputStream(csvFile);
+            // Create the CSV content
             String csvContent = createCSV();
-            //Log.i("DataExport", "CSV content: \n" + csvContent); //Uncomment for debugging
+            Log.d("DataExport", "CSV content length: " + (csvContent != null ? csvContent.length() : 0));
 
-            //Write the csv string to a file
+            // Write CSV content to the file
+            FileOutputStream fos = new FileOutputStream(csvFile);
             fos.write(csvContent.getBytes());
             fos.close();
 
+            // Confirm CSV file exists
+            Log.d("DataExport", "CSV file created: " + csvFile.exists() + " at " + csvFile.getAbsolutePath());
+
+            // Create a ZIP output stream
             ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
             FileInputStream fis = new FileInputStream(csvFile);
             ZipEntry entry = new ZipEntry(csvFile.getName());
@@ -83,19 +89,22 @@ public class DataExport {
             zos.close();
             fis.close();
 
-            //Delete temporary csv file
+            // Confirm ZIP file was created
+            Log.d("DataExport", "ZIP file created: " + zipFile.exists() + " at " + zipFile.getAbsolutePath());
+
+            // Delete the temporary CSV file
             if (csvFile.exists()) {
                 boolean deleted = csvFile.delete();
-                // Log.i("DataExport", "CSV file deleted after ZIP? " + deleted); //Uncomment for debugging
+                Log.d("DataExport", "CSV file deleted after ZIP? " + deleted);
             }
 
-            //Log.i("DataExport", "ZIP file created successfully at: " + zipFile.getAbsolutePath());
             return true; // success
         } catch (IOException e) {
-            Log.e("DataExport", "Failed to export zip file", e); //Error statement
+            Log.e("DataExport", "Failed to export zip file", e);
             return false; // error
         }
     }
+
 
     //Method to get sensor data from specific sensor type
     public ArrayList<String[]> getSensorData(String sensorType) {

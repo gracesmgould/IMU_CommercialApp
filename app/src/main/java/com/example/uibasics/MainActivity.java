@@ -1,13 +1,17 @@
 package com.example.uibasics;
 
+import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.EditText;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,11 +29,20 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     private long recordingStartTime;
     private boolean isAccelEnabled, isGyroEnabled, isGPSEnabled;
     private static final int REQUEST_LOCATION_PERMISSION = 1; //Request code for GPS permissions
-    private IMUDataCollector imuDataCollector;
-    private GPSCollector gpsCollector;
     private PlotFragment plotFragment; //fragment to plot live data
+    private SynchronizedDataCollector synchronizedDataCollector;
 
-
+    private final BroadcastReceiver exportReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String zipPath = intent.getStringExtra("ZIP_PATH");
+            if (zipPath != null) {
+                shareZipFile(zipPath);
+            } else {
+                Toast.makeText(context, "Export failed or no file found.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,60 +73,101 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
                 (tab, position) -> tab.setText(adapter.getTitle(position))
         ).attach();
     }
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     public void onStartRecording(boolean accel, boolean gyro, boolean gps) {
         //Log.d("MainActivity", "onStartRecording called with accel: " + accel + ", gyro: " + gyro + ", gps: " + gps); //Uncomment for debugging of user selection checkboxes
+        String recordingName = // get this from your EditText
+                ((EditText) findViewById(R.id.editRecordingName)).getText().toString();
 
+        getSharedPreferences("MyPrefs", MODE_PRIVATE)
+                .edit()
+                .putString("CURRENT_RECORDING_NAME", recordingName)
+                .apply();
         //User preferences for checkboxes
         isAccelEnabled = accel;
         isGyroEnabled = gyro;
         isGPSEnabled = gps;
 
-        //Record start time
-        recordingStartTime = System.currentTimeMillis();
-
-        // Initialize dataExporter
-        dataExport = new DataExport();
-
-        // Debug: Check plotFragment.
-        /*if (plotFragment != null) {
-            Log.d("MainActivity", "plotFragment is initialized and ready!");
+        // Start the background service for recording
+        Intent serviceIntent = new Intent(this, SynchronizedData_BackgroundService.class);
+        serviceIntent.putExtra("ACCEL_ENABLED", isAccelEnabled);
+        serviceIntent.putExtra("GYRO_ENABLED", isGyroEnabled);
+        serviceIntent.putExtra("GPS_ENABLED", isGPSEnabled);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            // For API 26 and up
+            startForegroundService(serviceIntent);
         } else {
-            Log.e("MainActivity", "plotFragment is NULL — no data will be plotted.");
-        }*/
-
-        // Start collecting IMU data
-        imuDataCollector = new IMUDataCollector(this, dataExport, isAccelEnabled, isGyroEnabled, plotFragment);
-        imuDataCollector.start();
-
-        // Start GPS data collection (if enabled)
-        if (isGPSEnabled) {
-            gpsCollector = new GPSCollector(this, dataExport, recordingStartTime);
-            gpsCollector.start();
+            // For API 24–25
+            startService(serviceIntent);
         }
+
+        // Start a local data collector for live plots (does not duplicate exported data!)
+        recordingStartTime = System.currentTimeMillis();
+        dataExport = new DataExport(); // Only for plotting (not exported)
+        synchronizedDataCollector = new SynchronizedDataCollector(
+                this, dataExport, isAccelEnabled, isGyroEnabled, isGPSEnabled, recordingStartTime, plotFragment
+        );
+        synchronizedDataCollector.start();
+
+        //Register receiver
+        super.onStart();
+        IntentFilter filter = new IntentFilter("EXPORT_COMPLETED");
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            registerReceiver(exportReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(exportReceiver, filter);
+        }
+
+
     }
 
     @Override
     public void onEventRecorded() {
         // Record the event timestamp relative to the recording start
         long relativeTime = System.currentTimeMillis() - recordingStartTime;
-        /*if (dataExport != null) {
+        if (dataExport != null) {
             dataExport.addEvent(relativeTime);
-        }*/
+        }
         ArrayList<String[]> rows = dataExport.getSensorData("Synchronized");
         if (rows != null && !rows.isEmpty()) {
             String[] lastRow = rows.get(rows.size() - 1);
-            lastRow[7] = String.valueOf(relativeTime);
+            lastRow[9] = String.valueOf(relativeTime);
         }
     }
+    //Stop the background service from recording
     @Override
     public void onStopRecording() {
-        if (imuDataCollector != null) {
-            imuDataCollector.stop();
+        Intent serviceIntent = new Intent(this, SynchronizedData_BackgroundService.class);
+        stopService(serviceIntent);
+
+        // Stop the local data collector (live plotting only)
+        if (synchronizedDataCollector != null) {
+            synchronizedDataCollector.stop();
         }
-        if (gpsCollector != null) {
-            gpsCollector.stop();
+        super.onStop();
+        unregisterReceiver(exportReceiver);
+    }
+    @Override
+    public void onExportRecording(String recordingName) {
+        File externalDir = getExternalFilesDir(null);
+        File zipFile = new File(externalDir, recordingName + ".zip");
+        shareZipFile(zipFile.getAbsolutePath());
+    }
+    private void shareZipFile(String zipFilePath) {
+        File zipFile = new File(zipFilePath);
+        if (!zipFile.exists()) {
+            Toast.makeText(this, "Export file does not exist.", Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        Uri fileUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", zipFile);
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("application/zip");
+        shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
+        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(Intent.createChooser(shareIntent, "Share ZIP file via:"));
     }
     //Request permission to access GPS
     @Override
@@ -128,29 +182,6 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
             }
         }
     }
-
-    @Override
-    public void onExportRecording(String recordingName) {
-        // Save the file in app-specific external storage (no permissions needed!)
-        File externalDir = getExternalFilesDir(null);
-        File zipFile = new File(externalDir, recordingName + ".zip");
-
-        if (dataExport.exportAsZip(zipFile)) {
-            Toast.makeText(this, "Export complete: " + zipFile.getAbsolutePath(), Toast.LENGTH_LONG).show();
-
-            // Share the file
-            Uri fileUri = FileProvider.getUriForFile(this, getPackageName() + ".provider", zipFile);
-            Intent shareIntent = new Intent(Intent.ACTION_SEND);
-            shareIntent.setType("application/zip");
-            shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
-            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(Intent.createChooser(shareIntent, "Share ZIP file via:"));
-        } else {
-            Toast.makeText(this, "Export failed: Could not write zip", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-
 }
 
 
