@@ -1,5 +1,6 @@
 package com.example.uibasics;
 
+import static androidx.core.content.ContextCompat.getSystemService;
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
