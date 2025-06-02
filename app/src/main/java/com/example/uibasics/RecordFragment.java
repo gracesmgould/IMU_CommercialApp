@@ -19,6 +19,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
 
     private TextView txtRecProgress;
     private EditText recordingID;
+
     private CheckBox checkBoxAccel, checkBoxGyro, checkBoxGPS;
     private Button startBtn, stopBtn, exportBtn, eventBtn;
     private OnRecordControlListener recordingControlListener; //Interface
@@ -90,7 +91,14 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
     }
     @Override
     public void onClick(View v) { //Once click has been registered by the onClickListener - need to figure out what the click is meant for
-        if (v.getId() == R.id.startBtn) {
+
+        String recordingName = recordingID.getText().toString().trim(); //Used to check if recording name is empty before proceeding
+
+        if (recordingName.isEmpty()){
+            Toast.makeText(getContext(), "Please enter recording name before starting", Toast.LENGTH_SHORT).show();
+            return;
+
+        } else if (v.getId() == R.id.startBtn) {
             txtRecProgress.setText("Recording in Progress");
 
             //Enable event button and stop button, disable start button once pressed
@@ -137,6 +145,11 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             Toast.makeText(getActivity(), "Exporting " + recordingID.getText().toString() + " data", Toast.LENGTH_SHORT).show();
             startBtn.setEnabled(true);
             exportBtn.setEnabled(false);
+
+            //Enable checkboxes to lock selections
+            checkBoxAccel.setEnabled(true);
+            checkBoxGyro.setEnabled(true);
+            checkBoxGPS.setEnabled(true);
         }
     }
 }
