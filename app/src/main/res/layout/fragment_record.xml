@@ -60,7 +60,7 @@
             android:layout_below="@id/checkboxesRelLayout"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="20dp"
-            android:backgroundTint="#3264a8"
+            android:backgroundTint="@color/startbutton_background"
             android:text="Start"
             android:textColor="@color/white"/>
         <Button
@@ -71,8 +71,8 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="20dp"
             android:text="Event"
-            android:backgroundTint="#1a1aff"
-            android:textColor="@color/white"/>
+            android:textColor="@color/white"
+            android:backgroundTint="@color/eventbutton_background"/>
 
         <Button
             android:id="@+id/stopBtn"
@@ -82,8 +82,9 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="20dp"
             android:text="Stop"
-            android:backgroundTint="#5900b3"
-            android:textColor="@color/white"/>
+            android:backgroundTint="@color/stopbutton_background"
+            android:textColor="@color/white"
+            />
 
         <Button
             android:id="@+id/exportBtn"
@@ -93,7 +94,7 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="20dp"
             android:text="Export"
-            android:backgroundTint="#b30086"
+            android:backgroundTint="@color/exportbutton_background"
             android:textColor="@color/white"/>
 
 

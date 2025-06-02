@@ -121,7 +121,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             txtRecProgress.setText("Recording has stopped");
 
             //Enable export and start buttons, disable event and stop.
-            startBtn.setEnabled(true);
+            startBtn.setEnabled(false);
             eventBtn.setEnabled(false);
             stopBtn.setEnabled(false);
             exportBtn.setEnabled(true);
@@ -135,6 +135,8 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
                 recordingControlListener.onExportRecording(recordingID.getText().toString());
             }
             Toast.makeText(getActivity(), "Exporting " + recordingID.getText().toString() + " data", Toast.LENGTH_SHORT).show();
+            startBtn.setEnabled(true);
+            exportBtn.setEnabled(false);
         }
     }
 }
