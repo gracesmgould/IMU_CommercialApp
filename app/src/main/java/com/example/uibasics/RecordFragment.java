@@ -120,7 +120,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             }
 
         } else if (v.getId() == R.id.eventBtn) {
-            //Toast.makeText(getActivity(), "Event time point has been recorded", Toast.LENGTH_SHORT).show(); //To test if time-point being recorded
+            Toast.makeText(getActivity(), "Event time point has been recorded", Toast.LENGTH_SHORT).show(); //To test if time-point being recorded
             if(recordingControlListener !=null){
                 recordingControlListener.onEventRecorded(); //Tells MainActivity to record event
             }

@@ -91,7 +91,7 @@ public class SynchronizedData_BackgroundService extends Service {
             Log.d("SynchronizedDataService", "DataCollector is not null, proceeding to export.");
             DataExport dataExport = dataCollector.getDataExport();
             File externalDir = getExternalFilesDir(null);
-            File zipFile = new File(externalDir, recordingName + ".zip");
+            File zipFile = getUniqueFile(externalDir, recordingName, ".zip");
 
             Log.d("SynchronizedDataService", "Starting export to: " + zipFile.getAbsolutePath());
             if (dataExport.exportAsZip(zipFile)) {
@@ -112,21 +112,9 @@ public class SynchronizedData_BackgroundService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d("SynchronizedDataService", "onDestroy called");
-        Log.d("SynchronizedDataService", "dataCollector at destroy? " + (dataCollector != null));
         if (dataCollector != null) {
             dataCollector.stop();
-            // Save the data to disk when stopping!
-            DataExport dataExport = dataCollector.getDataExport();
-            File externalDir = getExternalFilesDir(null);
-            // Use the recording name that was used during the recording!
-            String recordingName = getSharedPreferences("MyPrefs", MODE_PRIVATE)
-                    .getString("CURRENT_RECORDING_NAME", "default_recording");
-            File zipFile = new File(externalDir, recordingName + ".zip");
-            if (dataExport.exportAsZip(zipFile)) {
-                lastRecordingZipPath = zipFile.getAbsolutePath();
-                Log.d("SynchronizedDataService", "Recording saved at: " + lastRecordingZipPath);
-            }
+            Log.d("SynchronizedDataService", "Recording stopped, no file saved yet.");
         }
     }
 
@@ -135,5 +123,28 @@ public class SynchronizedData_BackgroundService extends Service {
     public IBinder onBind(Intent intent) {
         // Not a bound service
         return null;
+    }
+    //getUniqueFile to prevent overwriting of the same file name
+    private File getUniqueFile(File dir, String baseName, String extension) {
+        File file = new File(dir, baseName + extension);
+        Log.d("MainActivity", "Checking for file: " + file.getAbsolutePath());
+
+        // Check if the original file exists
+        if (!file.exists()) {
+            Log.d("MainActivity", "Original file does not exist. Using: " + file.getName());
+            return file;
+        }
+
+        // If it does exist, start numbering
+        int counter = 1;
+        File numberedFile;
+        do {
+            numberedFile = new File(dir, baseName + "(" + counter + ")" + extension);
+            Log.d("MainActivity", "Trying numbered file: " + numberedFile.getName());
+            counter++;
+        } while (numberedFile.exists());
+
+        Log.d("MainActivity", "Final unique filename: " + numberedFile.getName());
+        return numberedFile;
     }
 }

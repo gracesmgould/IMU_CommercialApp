@@ -123,7 +123,6 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
 
 
     }
-
     @Override
     public void onEventRecorded() {
         // Record the event timestamp relative to the recording start
@@ -140,21 +139,33 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     //Stop the background service from recording
     @Override
     public void onStopRecording() {
+        // Export first (while the Service is still alive and has dataCollector)
+        String recordingName = ((EditText) findViewById(R.id.editRecordingName)).getText().toString();
+        Intent exportIntent = new Intent(this, SynchronizedData_BackgroundService.class);
+        exportIntent.setAction("ACTION_EXPORT_DATA");
+        exportIntent.putExtra("RECORDING_NAME", recordingName);
+        startService(exportIntent);
+
+        // Give the Service time to finish export (optional: you could delay stopService with a Handler)
+        // Then stop the Service
         Intent serviceIntent = new Intent(this, SynchronizedData_BackgroundService.class);
         stopService(serviceIntent);
 
-        // Stop the local data collector (live plotting only)
+        // Stop local plotter (live plotting only)
         if (synchronizedDataCollector != null) {
             synchronizedDataCollector.stop();
         }
+
         super.onStop();
         unregisterReceiver(exportReceiver);
     }
     @Override
     public void onExportRecording(String recordingName) {
-        File externalDir = getExternalFilesDir(null);
-        File zipFile = new File(externalDir, recordingName + ".zip");
-        shareZipFile(zipFile.getAbsolutePath());
+        // Send an intent to the Service to trigger the export
+        Intent exportIntent = new Intent(this, SynchronizedData_BackgroundService.class);
+        exportIntent.setAction("ACTION_EXPORT_DATA");
+        exportIntent.putExtra("RECORDING_NAME", recordingName);
+        startService(exportIntent);
     }
     private void shareZipFile(String zipFilePath) {
         File zipFile = new File(zipFilePath);
