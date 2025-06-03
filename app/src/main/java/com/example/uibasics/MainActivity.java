@@ -125,17 +125,26 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     }
     @Override
     public void onEventRecorded() {
-        // Record the event timestamp relative to the recording start
         long relativeTime = System.currentTimeMillis() - recordingStartTime;
+
+        // Send event to the Service
+        Intent eventIntent = new Intent(this, SynchronizedData_BackgroundService.class);
+        eventIntent.setAction("ACTION_RECORD_EVENT");
+        eventIntent.putExtra("EVENT_TIMESTAMP", relativeTime);
+        startService(eventIntent);
+
+        // Optional: update local plotter data
         if (dataExport != null) {
             dataExport.addEvent(relativeTime);
-        }
-        ArrayList<String[]> rows = dataExport.getSensorData("Synchronized");
-        if (rows != null && !rows.isEmpty()) {
-            String[] lastRow = rows.get(rows.size() - 1);
-            lastRow[9] = String.valueOf(relativeTime);
+            ArrayList<String[]> rows = dataExport.getSensorData("Synchronized");
+            if (rows != null && !rows.isEmpty()) {
+                String[] lastRow = rows.get(rows.size() - 1);
+                // 🟩 10th column = index 9
+                lastRow[9] = String.valueOf(relativeTime);
+            }
         }
     }
+
     //Stop the background service from recording
     @Override
     public void onStopRecording() {

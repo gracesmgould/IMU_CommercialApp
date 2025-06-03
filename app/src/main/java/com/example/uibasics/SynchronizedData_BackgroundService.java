@@ -19,6 +19,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 
 import java.io.File;
+import java.util.ArrayList;
 
 public class SynchronizedData_BackgroundService extends Service {
     private SynchronizedDataCollector dataCollector;
@@ -33,18 +34,42 @@ public class SynchronizedData_BackgroundService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d("SynchronizedDataService", "onStartCommand called");
-        if (intent != null && "ACTION_EXPORT_DATA".equals(intent.getAction())) {
-            String recordingName = intent.getStringExtra("RECORDING_NAME");
-            Log.d("SynchronizedDataService", "Received export request for: " + recordingName);
-            exportRecording(recordingName);
-            return START_NOT_STICKY;
+
+        if (intent != null) {
+            String action = intent.getAction();
+
+            if ("ACTION_EXPORT_DATA".equals(action)) {
+                String recordingName = intent.getStringExtra("RECORDING_NAME");
+                Log.d("SynchronizedDataService", "Received export request for: " + recordingName);
+                exportRecording(recordingName);
+                return START_NOT_STICKY;
+
+            } else if ("ACTION_RECORD_EVENT".equals(action)) {
+                long eventTimestamp = intent.getLongExtra("EVENT_TIMESTAMP", -1);
+                if (eventTimestamp != -1 && dataCollector != null) {
+                    Log.d("SynchronizedDataService", "Recording event at: " + eventTimestamp);
+
+                    DataExport dataExport = dataCollector.getDataExport();
+                    dataExport.addEvent(eventTimestamp);
+
+                    ArrayList<String[]> rows = dataExport.getSensorData("Synchronized");
+                    if (rows != null && !rows.isEmpty()) {
+                        String[] lastRow = rows.get(rows.size() - 1);
+                        // 🟩 Save event timestamp in the 10th column (index 9)
+                        lastRow[9] = String.valueOf(eventTimestamp);
+                        Log.d("SynchronizedDataService", "Event time set in last row: " + String.join(",", lastRow));
+                    }
+                } else {
+                    Log.d("SynchronizedDataService", "Event ignored: dataCollector is null or invalid timestamp.");
+                }
+                return START_NOT_STICKY;
+            }
         }
 
-        // Create notification
+        // Recording start logic
         Notification notification = createNotification();
         startForeground(1, notification);
 
-        // Log to confirm service is really starting
         Log.d("SynchronizedDataService", "Recording service starting...");
 
         boolean isAccelEnabled = intent.getBooleanExtra("ACCEL_ENABLED", true);
@@ -64,6 +89,8 @@ public class SynchronizedData_BackgroundService extends Service {
 
         return START_STICKY;
     }
+
+
 
     private Notification createNotification() {
         String channelId = "recording_channel";
