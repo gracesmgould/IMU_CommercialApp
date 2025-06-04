@@ -111,61 +111,6 @@ public class DataExport {
             return false; // error
         }
     }
-    public boolean exportAsZipToDownloads(Context context, String fileName) {
-        try {
-            // Ensure the Downloads directory exists
-            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            if (!downloadsDir.exists()) {
-                downloadsDir.mkdirs();
-            }
-
-            // Set file paths
-            File zipFile = new File(downloadsDir, fileName + ".zip");
-            File csvFile = new File(downloadsDir, fileName + ".csv");
-
-            Log.d("DataExport", "Saving to: " + zipFile.getAbsolutePath());
-
-            // Write CSV content
-            String csvContent = createCSV();
-            FileOutputStream fos = new FileOutputStream(csvFile);
-            fos.write(csvContent.getBytes());
-            fos.close();
-
-            // Create ZIP
-            ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
-            FileInputStream fis = new FileInputStream(csvFile);
-            zos.putNextEntry(new ZipEntry(csvFile.getName()));
-
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = fis.read(buffer)) > 0) {
-                zos.write(buffer, 0, len);
-            }
-
-            zos.closeEntry();
-            zos.close();
-            fis.close();
-
-            // Optionally delete CSV after zipping
-            csvFile.delete();
-
-            // Make ZIP file visible in file explorer
-            MediaScannerConnection.scanFile(
-                    context,
-                    new String[]{zipFile.getAbsolutePath()},
-                    null,
-                    (path, uri) -> Log.d("DataExport", "MediaScanner scanned: " + path)
-            );
-
-            return true;
-
-        } catch (IOException e) {
-            Log.e("DataExport", "Failed to export to Downloads", e);
-            return false;
-        }
-    }
-
-
     //Method to get sensor data from specific sensor type
     public ArrayList<String[]> getSensorData(String sensorType) {
         return sensorDataMap.get(sensorType);

@@ -139,5 +139,23 @@ public class PlotFragment extends Fragment {
             lineChartGyro.invalidate();
         }
     }
+    public void resetCharts() {
+        if (accelDataSet != null) {
+            accelDataSet.clear();
+            lineChartAccel.getXAxis().removeAllLimitLines(); // also remove old event markers
+            lineChartAccel.getData().notifyDataChanged();
+            lineChartAccel.notifyDataSetChanged();
+            lineChartAccel.invalidate();
+        }
+
+        if (gyroDataSet != null) {
+            gyroDataSet.clear();
+            lineChartGyro.getXAxis().removeAllLimitLines();
+            lineChartGyro.getData().notifyDataChanged();
+            lineChartGyro.notifyDataSetChanged();
+            lineChartGyro.invalidate();
+        }
+    }
+
 
 }

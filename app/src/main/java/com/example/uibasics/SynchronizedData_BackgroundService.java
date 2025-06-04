@@ -115,28 +115,6 @@ public class SynchronizedData_BackgroundService extends Service {
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();
     }
-    /*private void exportRecording(String recordingName) {
-        if (dataCollector != null) {
-            Log.d("SynchronizedDataService", "DataCollector is not null, proceeding to export.");
-            DataExport dataExport = dataCollector.getDataExport();
-            File externalDir = getExternalFilesDir(null);
-            File zipFile = getUniqueFile(externalDir, recordingName, ".zip");
-
-            Log.d("SynchronizedDataService", "Starting export to: " + zipFile.getAbsolutePath());
-            if (dataExport.exportAsZip(zipFile)) {
-                lastRecordingZipPath = zipFile.getAbsolutePath();
-
-                // Notify MainActivity that the export is done!
-                Intent doneIntent = new Intent("EXPORT_COMPLETED");
-                doneIntent.putExtra("ZIP_PATH", lastRecordingZipPath);
-                sendBroadcast(doneIntent);
-
-                Log.d("SynchronizedDataService", "Export complete: " + lastRecordingZipPath);
-            } else {
-                Log.e("SynchronizedDataService", "Export failed");
-            }
-        } else {Log.d("SynchronizedDataService", "DataCollector is NULL! Cannot export.");}
-    }*/
     private void exportRecording(String recordingName) {
         if (dataCollector != null) {
             Log.d("SynchronizedDataService", "DataCollector is not null, proceeding to export.");

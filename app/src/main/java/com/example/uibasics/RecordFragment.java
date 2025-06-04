@@ -144,7 +144,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             if (recordingControlListener != null) {
                 recordingControlListener.onExportRecording(recordingID.getText().toString());
             }
-            Toast.makeText(getActivity(), "Exporting " + recordingID.getText().toString() + " data", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(), recordingID.getText().toString() + " saved in Downloads folder", Toast.LENGTH_SHORT).show();
             startBtn.setEnabled(true);
             exportBtn.setEnabled(false);
 

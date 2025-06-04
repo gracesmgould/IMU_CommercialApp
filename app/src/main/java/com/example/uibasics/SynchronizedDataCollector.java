@@ -139,9 +139,9 @@ public class SynchronizedDataCollector implements SensorEventListener {
             row[9] = String.valueOf(latitude);
             row[10] = String.valueOf(longitude);
         } else {
-            row[8] = "NaN";     //
-            row[9] = "NaN";
-            row[10] = "NaN";
+            row[8] = "0";     //
+            row[9] = "0";
+            row[10] = "0";
         }
         dataExport.addSensorRow("Synchronized", row);
 

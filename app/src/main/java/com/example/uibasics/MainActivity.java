@@ -111,6 +111,8 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
                 this, dataLivePlot, isAccelEnabled, isGyroEnabled, isGPSEnabled, recordingStartTime, plotFragment
         );
         synchronizedDataCollector.start();
+        plotFragment.resetCharts(); //reset the live plotting charts so plot is current recording
+
 
         //Register receiver
         super.onStart();
@@ -146,35 +148,12 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         }
 
         // Send the event time to the plot for visual marking
-        //TODO: Test if this sends to addEventMarker in PlotFragment class
         if (plotFragment != null) {
             plotFragment.addEventMarker(relativeTime/1000f); // convert to seconds if X-axis uses seconds
         }
     }
 
     //Stop the background service from recording
-    /*@Override
-    public void onStopRecording() {
-        // Export first (while the Service is still alive and has dataCollector)
-        String recordingName = ((EditText) findViewById(R.id.editRecordingName)).getText().toString();
-        Intent exportIntent = new Intent(this, SynchronizedData_BackgroundService.class);
-        exportIntent.setAction("ACTION_EXPORT_DATA");
-        exportIntent.putExtra("RECORDING_NAME", recordingName);
-        startService(exportIntent);
-
-        // Give the Service time to finish export (optional: you could delay stopService with a Handler)
-        // Then stop the Service
-        Intent serviceIntent = new Intent(this, SynchronizedData_BackgroundService.class);
-        stopService(serviceIntent);
-
-        // Stop local plotter (live plotting only)
-        if (synchronizedDataCollector != null) {
-            synchronizedDataCollector.stop();
-        }
-
-        super.onStop();
-        unregisterReceiver(exportReceiver);
-    }*/
     @Override
     public void onStopRecording() {
         String recordingName = ((EditText) findViewById(R.id.editRecordingName)).getText().toString();
@@ -218,19 +197,7 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(Intent.createChooser(shareIntent, "Share ZIP file via:"));
     }
-    //Request permission to access GPS
-    /*@Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_LOCATION_PERMISSION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted, start GPS updates
-                onStartRecording(isAccelEnabled, isGyroEnabled, isGPSEnabled);
-            } else {
-                Toast.makeText(this, "Location permission denied.", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }*/
+    //Request permission to access GPS and storage permission
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
