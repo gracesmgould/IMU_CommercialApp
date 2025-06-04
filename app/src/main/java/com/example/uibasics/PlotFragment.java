@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import androidx.fragment.app.Fragment;
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.LimitLine;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
@@ -107,4 +108,34 @@ public class PlotFragment extends Fragment {
             return String.format("%.1f", value);
         }
     }
+
+    //Marks event when event button pressed
+    //TODO: Need to test if these lines show up and leave when have access to android
+    public void addEventMarker(float eventTimeX) {
+        LimitLine eventLine = new LimitLine(eventTimeX, "Event");
+        eventLine.setLineColor(Color.RED);
+        eventLine.setLineWidth(2f);
+        eventLine.setTextColor(Color.BLACK);
+        eventLine.setTextSize(10f);
+
+        if (lineChartAccel != null) {
+            XAxis xAxis = lineChartAccel.getXAxis();
+            xAxis.addLimitLine(eventLine);
+            lineChartAccel.invalidate();
+        }
+
+        // Create a new LimitLine for gyro to avoid sharing the same object (MPAndroidChart limitation)
+        LimitLine eventLine2 = new LimitLine(eventTimeX, "Event");
+        eventLine2.setLineColor(Color.RED);
+        eventLine2.setLineWidth(2f);
+        eventLine2.setTextColor(Color.BLACK);
+        eventLine2.setTextSize(10f);
+
+        if (lineChartGyro != null) {
+            XAxis xAxis = lineChartGyro.getXAxis();
+            xAxis.addLimitLine(eventLine2);
+            lineChartGyro.invalidate();
+        }
+    }
+
 }

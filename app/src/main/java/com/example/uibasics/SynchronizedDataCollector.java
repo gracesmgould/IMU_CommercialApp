@@ -13,6 +13,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
 public class SynchronizedDataCollector implements SensorEventListener {
@@ -23,7 +24,9 @@ public class SynchronizedDataCollector implements SensorEventListener {
     private final Context context;
     private final DataExport dataExport;
     private long recordingStartTime;
-
+    private long accelTimestamp = -1;
+    private long gyroTimestamp = -1;
+    private long gpsTimestamp = -1;
     private final boolean isAccelEnabled;
     private final boolean isGyroEnabled;
     private final boolean isGPSEnabled;
@@ -32,7 +35,7 @@ public class SynchronizedDataCollector implements SensorEventListener {
     private float[] latestAccel = new float[3];
     private float[] latestGyro = new float[3];
     private double latitude = 0, longitude = 0;
-    private boolean hasAccel = false, hasGyro = false, hasGPS = false;
+    private boolean hasAccel = false, hasGyro = false;
     private boolean hasGPSFix = false;
 
     public SynchronizedDataCollector(Context context, DataExport dataExport,
@@ -50,7 +53,6 @@ public class SynchronizedDataCollector implements SensorEventListener {
         this.sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         this.accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         this.gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-
         this.locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
     }
     public DataExport getDataExport() {
@@ -103,53 +105,53 @@ public class SynchronizedDataCollector implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        long timestamp = System.currentTimeMillis() - recordingStartTime;
+        long eventTime = System.currentTimeMillis() - recordingStartTime;
 
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             latestAccel = event.values.clone();
+            accelTimestamp = eventTime;
             hasAccel = true;
         }
 
         if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
             latestGyro = event.values.clone();
+            gyroTimestamp = eventTime;
             hasGyro = true;
         }
 
-        // When both IMU sensors are updated, log them (no GPS yet)
         if (hasAccel && hasGyro) {
-            addSynchronizedRow(timestamp);
+            addCombinedRow(accelTimestamp, gyroTimestamp);
             hasAccel = hasGyro = false;
         }
     }
-
-    private void addSynchronizedRow(long timestamp) {
-        String[] row = new String[10];
-        row[0] = String.valueOf(timestamp);
-        row[1] = String.valueOf(latestAccel[0]);
-        row[2] = String.valueOf(latestAccel[1]);
-        row[3] = String.valueOf(latestAccel[2]);
-        row[4] = String.valueOf(latestGyro[0]);
-        row[5] = String.valueOf(latestGyro[1]);
-        row[6] = String.valueOf(latestGyro[2]);
-        row[7] = String.valueOf(latitude);
-        row[8] = String.valueOf(longitude);
-        row[9] = "0"; // Default event column
-
+    private void addCombinedRow(long accelTime, long gyroTime) {
+        String[] row = new String[12];
+        row[0] = String.valueOf(accelTime);         // accel_time
+        row[1] = String.valueOf(latestAccel[0]);    // ax
+        row[2] = String.valueOf(latestAccel[1]);    // ay
+        row[3] = String.valueOf(latestAccel[2]);    // az
+        row[4] = String.valueOf(gyroTime);          // gyro_time
+        row[5] = String.valueOf(latestGyro[0]);     // gx
+        row[6] = String.valueOf(latestGyro[1]);     // gy
+        row[7] = String.valueOf(latestGyro[2]);     // gz
+        if (hasGPSFix) {
+            row[8] = String.valueOf(gpsTimestamp);
+            row[9] = String.valueOf(latitude);
+            row[10] = String.valueOf(longitude);
+        } else {
+            row[8] = "NaN";     //
+            row[9] = "NaN";
+            row[10] = "NaN";
+        }
         dataExport.addSensorRow("Synchronized", row);
 
         if (plotFragment != null && plotFragment.getActivity() != null) {
             plotFragment.getActivity().runOnUiThread(() -> {
-                plotFragment.addAccelData(timestamp, latestAccel[0]);
-                plotFragment.addGyroData(timestamp, latestGyro[0]);
+                plotFragment.addAccelData(accelTime, latestAccel[0]);
+                plotFragment.addGyroData(gyroTime, latestGyro[0]);
             });
         }
-
-
-        if (!hasGPSFix) {
-            return; // skip logging if no GPS fix yet
-        }
     }
-
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
@@ -159,26 +161,16 @@ public class SynchronizedDataCollector implements SensorEventListener {
         public void onLocationChanged(Location location) {
             latitude = location.getLatitude();
             longitude = location.getLongitude();
-            Log.d("SynchronizedDataCollector", "GPS updated: " + latitude + ", " + longitude);
+            gpsTimestamp = System.currentTimeMillis() - recordingStartTime;
             hasGPSFix = true;
+            Log.d("SynchronizedDataCollector", "GPS updated: " + latitude + ", " + longitude);
         }
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {}
         @Override
-        public void onProviderEnabled(String provider) {}
+        public void onProviderEnabled(@NonNull String provider) {}
         @Override
-        public void onProviderDisabled(String provider) {}
+        public void onProviderDisabled(@NonNull String provider) {}
     };
-
-    // Method to add an event timestamp to the most recent row
-    /*public void addEvent(long relativeTime) {
-        // Find the last synchronized row and add the event timestamp
-        if (!dataExport.getSensorData("Synchronized").isEmpty()) {
-            String[] lastRow = dataExport.getSensorData("Synchronized").get(
-                    dataExport.getSensorData("Synchronized").size() - 1
-            );
-            lastRow[9] = String.valueOf(relativeTime); // column 10
-        }
-    }*/
 }

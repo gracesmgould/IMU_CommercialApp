@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -40,15 +41,19 @@ public class DataExport {
         StringBuilder sb = new StringBuilder();
 
         // Unified header
-        sb.append("timestamp,accX,accY,accZ,gyroX,gyroY,gyroZ,latitude,longitude,event_time\n");
+        sb.append("timeStampAcc,accX,accY,accZ,timeStampGyro,gyroX,gyroY,gyroZ,timeStampGPS,latitude,longitude,event_time\n");
 
         ArrayList<String[]> rows = sensorDataMap.get("Synchronized");
         if (rows != null) {
             for (String[] row : rows) {
+                if (row == null) continue;
+                // Ensure eventTimeStamp column (index 11) is not null
+                if (row[11] == null) {
+                    row[11] = "";  // Replace null with empty string
+                }
                 sb.append(String.join(",", row)).append("\n");
             }
         }
-
         return sb.toString();
     }
 

@@ -26,7 +26,7 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements RecordFragment.OnRecordControlListener {
 
-    private DataExport dataExport;
+    private DataExport dataLivePlot;
     private long recordingStartTime;
     private boolean isAccelEnabled, isGyroEnabled, isGPSEnabled;
     private static final int REQUEST_LOCATION_PERMISSION = 1; //Request code for GPS permissions
@@ -103,11 +103,11 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
             startService(serviceIntent);
         }
 
-        // Start a local data collector for live plots (does not duplicate exported data!)
+        // Start a local data collector for live plots (separate instance for live plotting)
         recordingStartTime = System.currentTimeMillis();
-        dataExport = new DataExport(); // Only for plotting (not exported)
+        dataLivePlot = new DataExport(); // Only for plotting (not exported)
         synchronizedDataCollector = new SynchronizedDataCollector(
-                this, dataExport, isAccelEnabled, isGyroEnabled, isGPSEnabled, recordingStartTime, plotFragment
+                this, dataLivePlot, isAccelEnabled, isGyroEnabled, isGPSEnabled, recordingStartTime, plotFragment
         );
         synchronizedDataCollector.start();
 
@@ -133,15 +133,21 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         eventIntent.putExtra("EVENT_TIMESTAMP", relativeTime);
         startService(eventIntent);
 
-        // Optional: update local plotter data
-        if (dataExport != null) {
-            dataExport.addEvent(relativeTime);
-            ArrayList<String[]> rows = dataExport.getSensorData("Synchronized");
+        // Update local plotter data with event time
+        if (dataLivePlot != null) {
+            dataLivePlot.addEvent(relativeTime);
+            ArrayList<String[]> rows = dataLivePlot.getSensorData("Synchronized");
             if (rows != null && !rows.isEmpty()) {
                 String[] lastRow = rows.get(rows.size() - 1);
-                // 🟩 10th column = index 9
+                // 10th column = index 9
                 lastRow[9] = String.valueOf(relativeTime);
             }
+        }
+
+        // Send the event time to the plot for visual marking
+        //TODO: Test if this sends to addEventMarker in PlotFragment class
+        if (plotFragment != null) {
+            plotFragment.addEventMarker(relativeTime); // convert to seconds if X-axis uses seconds
         }
     }
 

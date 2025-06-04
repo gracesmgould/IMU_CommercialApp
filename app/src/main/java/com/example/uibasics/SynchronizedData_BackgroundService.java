@@ -55,8 +55,8 @@ public class SynchronizedData_BackgroundService extends Service {
                     ArrayList<String[]> rows = dataExport.getSensorData("Synchronized");
                     if (rows != null && !rows.isEmpty()) {
                         String[] lastRow = rows.get(rows.size() - 1);
-                        // 🟩 Save event timestamp in the 10th column (index 9)
-                        lastRow[9] = String.valueOf(eventTimestamp);
+                        // Save event timestamp in the 12th column (index 11)
+                        lastRow[11] = String.valueOf(eventTimestamp);
                         Log.d("SynchronizedDataService", "Event time set in last row: " + String.join(",", lastRow));
                     }
                 } else {
@@ -109,7 +109,7 @@ public class SynchronizedData_BackgroundService extends Service {
         return new NotificationCompat.Builder(this, channelId)
                 .setContentTitle("Recording Active")
                 .setContentText("Sensor data is being recorded in the background.")
-                .setSmallIcon(R.drawable.ic_launcher_background) // Replace with your own icon
+                .setSmallIcon(R.drawable.ic_launcher_background) //HuMBL background icon
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();
     }
