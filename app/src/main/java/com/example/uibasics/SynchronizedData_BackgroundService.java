@@ -19,6 +19,9 @@ import androidx.core.app.NotificationCompat;
 
 import java.io.File;
 import java.util.ArrayList;
+import android.os.Environment;
+import android.media.MediaScannerConnection;
+
 
 public class SynchronizedData_BackgroundService extends Service {
     private SynchronizedDataCollector dataCollector;
@@ -112,7 +115,7 @@ public class SynchronizedData_BackgroundService extends Service {
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();
     }
-    private void exportRecording(String recordingName) {
+    /*private void exportRecording(String recordingName) {
         if (dataCollector != null) {
             Log.d("SynchronizedDataService", "DataCollector is not null, proceeding to export.");
             DataExport dataExport = dataCollector.getDataExport();
@@ -133,6 +136,44 @@ public class SynchronizedData_BackgroundService extends Service {
                 Log.e("SynchronizedDataService", "Export failed");
             }
         } else {Log.d("SynchronizedDataService", "DataCollector is NULL! Cannot export.");}
+    }*/
+    private void exportRecording(String recordingName) {
+        if (dataCollector != null) {
+            Log.d("SynchronizedDataService", "DataCollector is not null, proceeding to export.");
+            DataExport dataExport = dataCollector.getDataExport();
+
+            // Public Downloads directory
+            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            if (!downloadsDir.exists()) downloadsDir.mkdirs();
+
+            // Create unique filename in Downloads
+            File zipFile = getUniqueFile(downloadsDir, recordingName, ".zip");
+
+            Log.d("SynchronizedDataService", "Starting export to: " + zipFile.getAbsolutePath());
+
+            if (dataExport.exportAsZip(zipFile)) {
+                lastRecordingZipPath = zipFile.getAbsolutePath();
+
+                // Scan file so it's visible to system and file browsers
+                MediaScannerConnection.scanFile(
+                        this,
+                        new String[]{zipFile.getAbsolutePath()},
+                        null,
+                        (path, uri) -> Log.d("SynchronizedDataService", "Scanned to MediaStore: " + uri)
+                );
+
+                // Notify MainActivity export is done
+                Intent doneIntent = new Intent("EXPORT_COMPLETED");
+                doneIntent.putExtra("ZIP_PATH", lastRecordingZipPath);
+                sendBroadcast(doneIntent);
+
+                Log.d("SynchronizedDataService", "Export complete: " + lastRecordingZipPath);
+            } else {
+                Log.e("SynchronizedDataService", "Export failed");
+            }
+        } else {
+            Log.d("SynchronizedDataService", "DataCollector is NULL! Cannot export.");
+        }
     }
 
     @Override

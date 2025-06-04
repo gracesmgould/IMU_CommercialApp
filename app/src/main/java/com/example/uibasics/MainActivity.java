@@ -31,6 +31,8 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     private static final int REQUEST_LOCATION_PERMISSION = 1; //Request code for GPS permissions
     private PlotFragment plotFragment; //fragment to plot live data
     private SynchronizedDataCollector synchronizedDataCollector;
+    private static final int REQUEST_STORAGE_PERMISSION = 1001;
+    private String pendingRecordingNameForExport = null;
 
     private final BroadcastReceiver exportReceiver = new BroadcastReceiver() {
         @Override
@@ -151,7 +153,7 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     }
 
     //Stop the background service from recording
-    @Override
+    /*@Override
     public void onStopRecording() {
         // Export first (while the Service is still alive and has dataCollector)
         String recordingName = ((EditText) findViewById(R.id.editRecordingName)).getText().toString();
@@ -172,7 +174,28 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
 
         super.onStop();
         unregisterReceiver(exportReceiver);
+    }*/
+    @Override
+    public void onStopRecording() {
+        String recordingName = ((EditText) findViewById(R.id.editRecordingName)).getText().toString();
+
+        // Check storage permission (API 24–28 needs it for Downloads)
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                // Store recording name to export after permission is granted
+                pendingRecordingNameForExport = recordingName;
+                requestPermissions(
+                        new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        REQUEST_STORAGE_PERMISSION
+                );
+                return; // wait for permission result
+            }
+        }
+
+        exportAndStop(recordingName);
     }
+
     @Override
     public void onExportRecording(String recordingName) {
         // Send an intent to the Service to trigger the export
@@ -196,7 +219,7 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         startActivity(Intent.createChooser(shareIntent, "Share ZIP file via:"));
     }
     //Request permission to access GPS
-    @Override
+    /*@Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_LOCATION_PERMISSION) {
@@ -207,7 +230,50 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
                 Toast.makeText(this, "Location permission denied.", Toast.LENGTH_SHORT).show();
             }
         }
+    }*/
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                onStartRecording(isAccelEnabled, isGyroEnabled, isGPSEnabled);
+            } else {
+                Toast.makeText(this, "Location permission denied.", Toast.LENGTH_SHORT).show();
+            }
+        } else if (requestCode == REQUEST_STORAGE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (pendingRecordingNameForExport != null) {
+                    exportAndStop(pendingRecordingNameForExport);
+                    pendingRecordingNameForExport = null; // clear it
+                }
+            } else {
+                Toast.makeText(this, "Storage permission denied. Cannot export recording.", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
+
+    private void exportAndStop(String recordingName) {
+        // Send export intent
+        Intent exportIntent = new Intent(this, SynchronizedData_BackgroundService.class);
+        exportIntent.setAction("ACTION_EXPORT_DATA");
+        exportIntent.putExtra("RECORDING_NAME", recordingName);
+        startService(exportIntent);
+
+        // Stop background service
+        Intent serviceIntent = new Intent(this, SynchronizedData_BackgroundService.class);
+        stopService(serviceIntent);
+
+        // Stop local plotting
+        if (synchronizedDataCollector != null) {
+            synchronizedDataCollector.stop();
+        }
+
+        // Unregister export receiver
+        unregisterReceiver(exportReceiver);
+    }
+
 }
 
 
