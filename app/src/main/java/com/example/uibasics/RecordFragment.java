@@ -96,10 +96,12 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
 
         if (recordingName.isEmpty()){
             Toast.makeText(getContext(), "Please enter recording name before starting", Toast.LENGTH_SHORT).show();
-            return;
 
         } else if (v.getId() == R.id.startBtn) {
             txtRecProgress.setText("Recording in Progress");
+
+            //Disable EditText to prevent user from changing recording name
+            recordingID.setEnabled(false);
 
             //Enable event button and stop button, disable start button once pressed
             startBtn.setEnabled(false);
@@ -145,6 +147,9 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             Toast.makeText(getActivity(), "Exporting " + recordingID.getText().toString() + " data", Toast.LENGTH_SHORT).show();
             startBtn.setEnabled(true);
             exportBtn.setEnabled(false);
+
+            //Enable EditText to enter new recording name
+            recordingID.setEnabled(true);
 
             //Enable checkboxes to lock selections
             checkBoxAccel.setEnabled(true);

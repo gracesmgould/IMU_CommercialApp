@@ -2,7 +2,7 @@ package com.example.uibasics;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
+//import android.util.Log; //Uncomment for Log debugging statements
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -101,7 +101,7 @@ public class PlotFragment extends Fragment {
         }
     }
 
-    //Formatter for displaying time on the Xaxis of the live plots
+    //Formatter for displaying time on the X-axis of the live plots
     public static class UnitValueFormatter extends ValueFormatter {
         @Override
         public String getFormattedValue(float value) {
@@ -113,7 +113,7 @@ public class PlotFragment extends Fragment {
     //TODO: Need to test if these lines show up and leave when have access to android
     public void addEventMarker(float eventTimeX) {
         LimitLine eventLine = new LimitLine(eventTimeX, "Event");
-        eventLine.setLineColor(Color.RED);
+        eventLine.setLineColor(Color.BLACK);
         eventLine.setLineWidth(2f);
         eventLine.setTextColor(Color.BLACK);
         eventLine.setTextSize(10f);
@@ -121,12 +121,13 @@ public class PlotFragment extends Fragment {
         if (lineChartAccel != null) {
             XAxis xAxis = lineChartAccel.getXAxis();
             xAxis.addLimitLine(eventLine);
+            xAxis.setDrawLimitLinesBehindData(true); //event line behind data
             lineChartAccel.invalidate();
         }
 
         // Create a new LimitLine for gyro to avoid sharing the same object (MPAndroidChart limitation)
         LimitLine eventLine2 = new LimitLine(eventTimeX, "Event");
-        eventLine2.setLineColor(Color.RED);
+        eventLine2.setLineColor(Color.BLACK);
         eventLine2.setLineWidth(2f);
         eventLine2.setTextColor(Color.BLACK);
         eventLine2.setTextSize(10f);
@@ -134,6 +135,7 @@ public class PlotFragment extends Fragment {
         if (lineChartGyro != null) {
             XAxis xAxis = lineChartGyro.getXAxis();
             xAxis.addLimitLine(eventLine2);
+            xAxis.setDrawLimitLinesBehindData(true);
             lineChartGyro.invalidate();
         }
     }

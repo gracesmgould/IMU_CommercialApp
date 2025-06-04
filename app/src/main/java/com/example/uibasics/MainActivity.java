@@ -1,6 +1,6 @@
 package com.example.uibasics;
 
-import static androidx.core.content.ContextCompat.getSystemService;
+//import static androidx.core.content.ContextCompat.getSystemService;
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -11,7 +11,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
+//import android.util.Log; //Needed for Log debugging statements
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -21,7 +21,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements RecordFragment.OnRecordControlListener {
@@ -147,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         // Send the event time to the plot for visual marking
         //TODO: Test if this sends to addEventMarker in PlotFragment class
         if (plotFragment != null) {
-            plotFragment.addEventMarker(relativeTime); // convert to seconds if X-axis uses seconds
+            plotFragment.addEventMarker(relativeTime/1000f); // convert to seconds if X-axis uses seconds
         }
     }
 
