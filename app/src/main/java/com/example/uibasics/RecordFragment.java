@@ -89,6 +89,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
         eventBtn.setEnabled(false);
         stopBtn.setEnabled(false);
         exportBtn.setEnabled(false);
+        deleteBtn.setEnabled(false);
 
         return view;
     }
