@@ -8,7 +8,7 @@
         android:layout_height="wrap_content"
         android:padding="24dp">
 
-        <!-- Paste your TextViews, Buttons, CheckBoxes, etc. here -->
+
 
     </RelativeLayout>
 </ScrollView>

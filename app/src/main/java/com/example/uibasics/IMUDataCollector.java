@@ -55,13 +55,21 @@ public class IMUDataCollector implements SensorEventListener {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             System.arraycopy(event.values, 0, latestAccel, 0, 3);
             latestAccelTime = timestamp;
-            plotFragment.addAccelData(timestamp, event.values[0]);
+            if (plotFragment != null && plotFragment.getActivity() != null) {
+                plotFragment.getActivity().runOnUiThread(() ->
+                        plotFragment.addAccelData(timestamp, event.values[0], event.values[1], event.values[2])
+                );
+            }
         }
 
         if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
             System.arraycopy(event.values, 0, latestGyro, 0, 3);
             latestGyroTime = timestamp;
-            plotFragment.addGyroData(timestamp, event.values[0]);
+            if (plotFragment != null && plotFragment.getActivity() != null) {
+                plotFragment.getActivity().runOnUiThread(() ->
+                        plotFragment.addGyroData(timestamp, event.values[0], event.values[1], event.values[2])
+                );
+            }
         }
 
         // Only write synchronized row when we have fresh data from both

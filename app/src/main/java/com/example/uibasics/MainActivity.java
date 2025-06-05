@@ -6,12 +6,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
 //import android.util.Log; //Needed for Log debugging statements
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -173,6 +175,38 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         }
 
         exportAndStop(recordingName);
+    }
+
+
+    @Override
+    public void onDeleteRecorded() {
+        // 1. Delete background service file
+        if (SynchronizedData_BackgroundService.lastRecordingZipPath != null) {
+            File zipFile = new File(SynchronizedData_BackgroundService.lastRecordingZipPath);
+            if (zipFile.exists()) {
+                boolean deleted = zipFile.delete();
+                Log.d("DeleteRecording", "Background file deleted: " + deleted);
+            }
+        }
+
+        // 2. Delete live plotting file
+        File externalDir = getExternalFilesDir(null);
+        SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+        String recordingName = prefs.getString("CURRENT_RECORDING_NAME", null);
+        if (recordingName != null) {
+            File liveFile = new File(externalDir, recordingName + ".csv"); // or .zip depending on your format
+            if (liveFile.exists()) {
+                boolean deletedLive = liveFile.delete();
+                Log.d("DeleteRecording", "Live file deleted: " + deletedLive);
+            }
+        }
+
+        // 3. Reset plot/chart data if needed
+        if (plotFragment != null) {
+            plotFragment.resetCharts();
+        }
+
+        Toast.makeText(this, "Recording deleted", Toast.LENGTH_SHORT).show();
     }
 
     @Override

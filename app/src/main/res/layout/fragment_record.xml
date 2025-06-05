@@ -25,7 +25,7 @@
             android:id="@+id/txtRecordingProgress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/exportBtn"
+            android:layout_below="@id/saveDeleteContainer"
             android:layout_centerHorizontal="true"
             android:layout_margin="20dp"
             android:hint="Recording status will be displayed here"
@@ -51,7 +51,8 @@
             android:hint="Please enter name of recording"
             android:imeOptions="actionDone"
             android:singleLine="true"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:backgroundTint="#3264a8"/>
 
         <Button
             android:id="@+id/startBtn"
@@ -86,17 +87,33 @@
             android:textColor="@color/white"
             />
 
-        <Button
-            android:id="@+id/exportBtn"
+
+        <LinearLayout
+            android:id="@+id/saveDeleteContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@+id/stopBtn"
             android:layout_centerHorizontal="true"
-            android:layout_marginTop="20dp"
-            android:text="Save/Export"
-            android:backgroundTint="@color/exportbutton_background"
-            android:textColor="@color/white"/>
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
 
+            <Button
+                android:id="@+id/deleteBtn"
+                android:layout_width="90dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:backgroundTint="@color/deletebutton_background"
+                android:text="Delete"
+                android:textColor="@color/white" />
+
+            <Button
+                android:id="@+id/exportBtn"
+                android:layout_width="90dp"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/exportbutton_background"
+                android:text="Save"
+                android:textColor="@color/white" />
+        </LinearLayout>
 
 
         <RelativeLayout
@@ -105,8 +122,7 @@
             android:layout_height= "wrap_content"
             android:layout_centerHorizontal="true"
             android:layout_below="@+id/dataRecSelection"
-            android:layout_marginTop="10dp"
-            >
+            android:layout_marginTop="10dp">
 
             <CheckBox
                 android:id="@+id/checkboxLinAccelerometer"
@@ -114,7 +130,7 @@
                 android:layout_height="wrap_content"
                 android:layout_centerHorizontal="true"
                 android:checked="true"
-                android:text="Linear Acceleration"
+                android:text="Acceleration"
                 android:textAlignment="viewStart"
                 android:buttonTint="#3264a8"/>
 

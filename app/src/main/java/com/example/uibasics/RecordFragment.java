@@ -21,7 +21,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
     private EditText recordingID;
 
     private CheckBox checkBoxAccel, checkBoxGyro, checkBoxGPS;
-    private Button startBtn, stopBtn, exportBtn, eventBtn;
+    private Button startBtn, stopBtn, exportBtn, eventBtn, deleteBtn;
     private OnRecordControlListener recordingControlListener; //Interface
 
     public RecordFragment() {
@@ -31,6 +31,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
         void onStartRecording(boolean accel, boolean gyro, boolean gps);
         void onStopRecording();
         void onEventRecorded();
+        void onDeleteRecorded();
         void onExportRecording(String recordingName);
     }
     // Attach the interface to the activity (listener set-up)
@@ -74,12 +75,14 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
         stopBtn = view.findViewById(R.id.stopBtn);
         exportBtn = view.findViewById(R.id.exportBtn);
         eventBtn = view.findViewById(R.id.eventBtn);
+        deleteBtn = view.findViewById(R.id.deleteBtn);
 
         //Setup click listeners
         startBtn.setOnClickListener(this);
         stopBtn.setOnClickListener(this);
         exportBtn.setOnClickListener(this);
         eventBtn.setOnClickListener(this);
+        deleteBtn.setOnClickListener(this);
 
         //Disable all buttons except for start button
         startBtn.setEnabled(true);
@@ -107,6 +110,7 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             startBtn.setEnabled(false);
             eventBtn.setEnabled(true);
             stopBtn.setEnabled(true);
+            deleteBtn.setEnabled(false);
 
             // Disable checkboxes to lock selections
             checkBoxAccel.setEnabled(false);
@@ -135,18 +139,37 @@ public class RecordFragment extends Fragment implements View.OnClickListener {
             eventBtn.setEnabled(false);
             stopBtn.setEnabled(false);
             exportBtn.setEnabled(true);
+            deleteBtn.setEnabled(true);
 
             if (recordingControlListener != null){ //Signal Main Activity to stop live plotting
                 recordingControlListener.onStopRecording();
             }
 
-        } else if (v.getId() == R.id.exportBtn) {
+        } else if (v.getId() ==R.id.deleteBtn){
+            if(recordingControlListener !=null) {
+                recordingControlListener.onDeleteRecorded(); //Tells MainActivity to delete recording
+            }
+            startBtn.setEnabled(true);
+            exportBtn.setEnabled(false);
+            deleteBtn.setEnabled(false);
+
+            //Enable EditText to enter new recording name
+            recordingID.setEnabled(true);
+
+            //Enable checkboxes to lock selections
+            checkBoxAccel.setEnabled(true);
+            checkBoxGyro.setEnabled(true);
+            checkBoxGPS.setEnabled(true);;
+
+
+        }else if (v.getId() == R.id.exportBtn) {
             if (recordingControlListener != null) {
                 recordingControlListener.onExportRecording(recordingID.getText().toString());
             }
             Toast.makeText(getActivity(), recordingID.getText().toString() + " saved in Downloads folder", Toast.LENGTH_SHORT).show();
             startBtn.setEnabled(true);
             exportBtn.setEnabled(false);
+            deleteBtn.setEnabled(false);
 
             //Enable EditText to enter new recording name
             recordingID.setEnabled(true);

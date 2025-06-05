@@ -103,6 +103,7 @@ public class SynchronizedDataCollector implements SensorEventListener {
         locationManager.removeUpdates(locationListener);
     }
 
+
     @Override
     public void onSensorChanged(SensorEvent event) {
         long eventTime = System.currentTimeMillis() - recordingStartTime;
@@ -111,12 +112,22 @@ public class SynchronizedDataCollector implements SensorEventListener {
             latestAccel = event.values.clone();
             accelTimestamp = eventTime;
             hasAccel = true;
+
+            // Add plotting for individual axes
+            if (plotFragment != null) {
+                plotFragment.addAccelData(accelTimestamp, latestAccel[0], latestAccel[1], latestAccel[2]);
+            }
         }
 
         if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
             latestGyro = event.values.clone();
             gyroTimestamp = eventTime;
             hasGyro = true;
+
+            // Add plotting for individual axes
+            if (plotFragment != null) {
+                plotFragment.addGyroData(gyroTimestamp, latestGyro[0], latestGyro[1], latestGyro[2]);
+            }
         }
 
         if (hasAccel && hasGyro) {
@@ -124,6 +135,7 @@ public class SynchronizedDataCollector implements SensorEventListener {
             hasAccel = hasGyro = false;
         }
     }
+
     private void addCombinedRow(long accelTime, long gyroTime) {
         String[] row = new String[12];
         row[0] = String.valueOf(accelTime);         // accel_time
@@ -143,12 +155,13 @@ public class SynchronizedDataCollector implements SensorEventListener {
             row[9] = "0";
             row[10] = "0";
         }
+
         dataExport.addSensorRow("Synchronized", row);
 
         if (plotFragment != null && plotFragment.getActivity() != null) {
             plotFragment.getActivity().runOnUiThread(() -> {
-                plotFragment.addAccelData(accelTime, latestAccel[0]);
-                plotFragment.addGyroData(gyroTime, latestGyro[0]);
+                plotFragment.addAccelData(accelTime, latestAccel[0], latestAccel[1], latestAccel[2]);
+                plotFragment.addGyroData(gyroTime, latestGyro[0], latestGyro[1], latestGyro[2]);
             });
         }
     }
@@ -173,4 +186,5 @@ public class SynchronizedDataCollector implements SensorEventListener {
         @Override
         public void onProviderDisabled(@NonNull String provider) {}
     };
+
 }
