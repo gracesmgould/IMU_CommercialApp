@@ -1,0 +1,34 @@
+@startuml
+actor User
+
+User -> MainActivity : Click "Start"
+MainActivity -> BackgroundService : start()
+
+note over BackgroundService : Initialize sensor recording
+
+alt Accel enabled
+  BackgroundService -> Sensors : Register accelerometer
+end
+alt Gyro enabled
+  BackgroundService -> Sensors : Register gyroscope
+end
+alt GPS enabled
+  BackgroundService -> Sensors : Request location updates
+end
+
+loop While recording
+  Sensors --> BackgroundService : Send data
+  BackgroundService --> PlotFragment : Update chart
+end
+
+User -> MainActivity : Click "Stop"
+MainActivity -> BackgroundService : stop()
+
+note over BackgroundService :Prepare export
+
+BackgroundService -> DataExport : exportAsZip()
+DataExport -> MainActivity : Notify user (Toast or Notification)
+
+@enduml
+
+

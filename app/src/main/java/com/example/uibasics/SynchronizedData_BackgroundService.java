@@ -21,10 +21,14 @@ import java.io.File;
 import java.util.ArrayList;
 import android.os.Environment;
 import android.media.MediaScannerConnection;
-
+import java.util.HashMap;
+import java.util.Map;
 
 public class SynchronizedData_BackgroundService extends Service {
     private SynchronizedDataCollector dataCollector;
+    private int pendingEventRowIndex = -1;
+
+    private final Map<Long, Integer> eventTimestampToRowIndex = new HashMap<>(); //for keeping track of event timestamps for event descriptions
     public static String lastRecordingZipPath; // Static variable for easy access
 
     @Override
@@ -46,7 +50,8 @@ public class SynchronizedData_BackgroundService extends Service {
                 exportRecording(recordingName);
                 return START_NOT_STICKY;
 
-            } else if ("ACTION_RECORD_EVENT".equals(action)) {
+            }
+            if ("ACTION_RECORD_EVENT".equals(action)) {
                 long eventTimestamp = intent.getLongExtra("EVENT_TIMESTAMP", -1);
                 if (eventTimestamp != -1 && dataCollector != null) {
                     Log.d("SynchronizedDataService", "Recording event at: " + eventTimestamp);
@@ -56,13 +61,47 @@ public class SynchronizedData_BackgroundService extends Service {
 
                     ArrayList<String[]> rows = dataExport.getSensorData("Synchronized");
                     if (rows != null && !rows.isEmpty()) {
-                        String[] lastRow = rows.get(rows.size() - 1);
-                        // Save event timestamp in the 12th column (index 11)
+                        int targetIndex = rows.size() - 1;
+                        eventTimestampToRowIndex.put(eventTimestamp, targetIndex);
+
+                        String[] lastRow = rows.get(targetIndex);
+                        if (lastRow.length < 13) {
+                            lastRow = java.util.Arrays.copyOf(lastRow, 13);
+                            rows.set(targetIndex, lastRow);
+                        }
                         lastRow[11] = String.valueOf(eventTimestamp);
-                        Log.d("SynchronizedDataService", "Event time set in last row: " + String.join(",", lastRow));
+                        Log.d("SynchronizedDataService", "Event time set in row " + targetIndex + ": " + String.join(",", lastRow));
                     }
+
+
                 } else {
                     Log.d("SynchronizedDataService", "Event ignored: dataCollector is null or invalid timestamp.");
+                }
+                return START_NOT_STICKY;
+            } else if ("ACTION_ADD_EVENT_DESCRIPTION".equals(action)) {
+                String desc = intent.getStringExtra("EVENT_DESCRIPTION");
+                long timestamp = intent.getLongExtra("EVENT_TIMESTAMP", -1);
+
+                if (desc != null && timestamp != -1 && dataCollector != null) {
+                    Log.d("SynchronizedDataService", "Recording description: " + desc + " at " + timestamp);
+
+                    ArrayList<String[]> rows = dataCollector.getDataExport().getSensorData("Synchronized");
+                    Integer targetIndex = eventTimestampToRowIndex.get(timestamp);
+
+                    if (rows != null && targetIndex != null && targetIndex >= 0 && targetIndex < rows.size()) {
+                        String[] targetRow = rows.get(targetIndex);
+                        if (targetRow.length < 13) {
+                            targetRow = java.util.Arrays.copyOf(targetRow, 13);
+                            rows.set(targetIndex, targetRow);
+                        }
+                        targetRow[12] = desc.replace(",", " ");
+                        Log.d("SynchronizedDataService", "Description added to row " + targetIndex + ": " + String.join(",", targetRow));
+                    } else {
+                        Log.w("SynchronizedDataService", "No matching row found for event timestamp: " + timestamp);
+                    }
+
+                } else {
+                    Log.d("SynchronizedDataService", "Description ignored: missing data or collector");
                 }
                 return START_NOT_STICKY;
             }

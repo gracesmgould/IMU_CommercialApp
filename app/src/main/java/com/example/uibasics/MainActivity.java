@@ -14,9 +14,11 @@ import android.net.Uri;
 import android.os.Bundle;
 //import android.util.Log; //Needed for Log debugging statements
 import android.util.Log;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.viewpager2.widget.ViewPager2;
@@ -24,6 +26,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity implements RecordFragment.OnRecordControlListener {
 
@@ -141,11 +144,41 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         // Update local plotter data with event time
         if (dataLivePlot != null) {
             dataLivePlot.addEvent(relativeTime);
+
             ArrayList<String[]> rows = dataLivePlot.getSensorData("Synchronized");
             if (rows != null && !rows.isEmpty()) {
                 String[] lastRow = rows.get(rows.size() - 1);
                 // 10th column = index 9
-                lastRow[9] = String.valueOf(relativeTime);
+                lastRow[11] = String.valueOf(relativeTime);
+
+                // Prompt user for description
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle("Describe the Event");
+
+                final EditText input = new EditText(this);
+                input.setHint("Enter a short description...");
+                builder.setView(input);
+
+                builder.setPositiveButton("OK", (dialog, which) -> {
+                    String description = input.getText().toString();
+                    Intent descIntent = new Intent(MainActivity.this, SynchronizedData_BackgroundService.class);
+                    descIntent.setAction("ACTION_ADD_EVENT_DESCRIPTION");
+                    descIntent.putExtra("EVENT_DESCRIPTION", description);
+                    descIntent.putExtra("EVENT_TIMESTAMP", relativeTime); // still relative
+                    startService(descIntent);
+
+
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) {
+                        imm.hideSoftInputFromWindow(input.getWindowToken(), 0);
+                    }
+
+                    Log.d("Export", "Row with description saved: " + Arrays.toString(lastRow));
+                });
+
+                builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+                builder.show();
+
             }
         }
 

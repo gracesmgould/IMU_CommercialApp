@@ -43,16 +43,12 @@ public class DataExport {
         StringBuilder sb = new StringBuilder();
 
         // Unified header
-        sb.append("timeStampAcc,accX,accY,accZ,timeStampGyro,gyroX,gyroY,gyroZ,timeStampGPS,latitude,longitude,event_time\n");
+        sb.append("timeStampAcc,accX,accY,accZ,timeStampGyro,gyroX,gyroY,gyroZ,timeStampGPS,latitude,longitude,event_time, event_description\n");
 
         ArrayList<String[]> rows = sensorDataMap.get("Synchronized");
         if (rows != null) {
             for (String[] row : rows) {
                 if (row == null) continue;
-                // Ensure eventTimeStamp column (index 11) is not null
-                if (row[11] == null) {
-                    row[11] = "";  // Replace null with empty string
-                }
                 sb.append(String.join(",", row)).append("\n");
             }
         }

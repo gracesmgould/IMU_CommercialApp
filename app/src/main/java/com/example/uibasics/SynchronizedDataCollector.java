@@ -12,9 +12,17 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Locale;
 
 public class SynchronizedDataCollector implements SensorEventListener {
     private final SensorManager sensorManager;
@@ -137,7 +145,7 @@ public class SynchronizedDataCollector implements SensorEventListener {
     }
 
     private void addCombinedRow(long accelTime, long gyroTime) {
-        String[] row = new String[12];
+        String[] row = new String[13];
         row[0] = String.valueOf(accelTime);         // accel_time
         row[1] = String.valueOf(latestAccel[0]);    // ax
         row[2] = String.valueOf(latestAccel[1]);    // ay
@@ -146,6 +154,8 @@ public class SynchronizedDataCollector implements SensorEventListener {
         row[5] = String.valueOf(latestGyro[0]);     // gx
         row[6] = String.valueOf(latestGyro[1]);     // gy
         row[7] = String.valueOf(latestGyro[2]);     // gz
+        row[11] = "";
+        row[12] = "";                               //Event description
         if (hasGPSFix) {
             row[8] = String.valueOf(gpsTimestamp);
             row[9] = String.valueOf(latitude);
@@ -165,6 +175,54 @@ public class SynchronizedDataCollector implements SensorEventListener {
             });
         }
     }
+    public void recordEventWithDialog() {
+        ArrayList<String[]> rows = dataExport.getSensorData("Synchronized");
+
+        if (rows == null || rows.isEmpty()) {
+            Log.w("SynchronizedDataCollector", "No data rows to attach event to");
+            return;
+        }
+
+        // Get the most recent row
+        String[] lastRow = rows.get(rows.size() - 1);
+
+        // Insert timestamp in column 12
+        String timeFormatted = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
+                .format(new Date(System.currentTimeMillis()));
+        lastRow[11] = timeFormatted;
+
+        // Show dialog to get description and store in column 13
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle("Describe the Event");
+
+        final EditText input = new EditText(context);
+        input.setHint("Enter a short description...");
+        builder.setView(input);
+
+        builder.setPositiveButton("OK", (dialog, which) -> {
+            String description = input.getText().toString();
+            lastRow[12] = description.replace(",", " "); // avoid commas in CSV
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+    public void recordEventDescription(long timestamp, String description) {
+        ArrayList<String[]> rows = dataExport.getSensorData("Synchronized");
+        if (rows != null && !rows.isEmpty()) {
+            String[] lastRow = rows.get(rows.size() - 1);
+
+            if (lastRow.length < 13) {
+                lastRow = Arrays.copyOf(lastRow, 13);
+                rows.set(rows.size() - 1, lastRow);
+            }
+
+            lastRow[11] = String.valueOf(timestamp);              // event_time
+            lastRow[12] = description.replace(",", " ");          // event_description
+            Log.d("EventWrite", "Saved description to background export row: " + Arrays.toString(lastRow));
+        }
+    }
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
