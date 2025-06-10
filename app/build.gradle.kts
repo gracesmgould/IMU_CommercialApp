@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.uibasics"
+    namespace = "com.humbl.imuapp"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.uibasics"
+        applicationId = "com.humbl.imuapp"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

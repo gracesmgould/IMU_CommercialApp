@@ -1,4 +1,4 @@
-package com.example.uibasics;
+package com.humbl.imuapp;
 
 import android.content.Context;
 import android.os.Bundle;

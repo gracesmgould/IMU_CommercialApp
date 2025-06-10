@@ -1,12 +1,10 @@
-package com.example.uibasics;
+package com.humbl.imuapp;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.example.uibasics.MainActivity;
 
 public class SplashActivity extends AppCompatActivity {
     @Override

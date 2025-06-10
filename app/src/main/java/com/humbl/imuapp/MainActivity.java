@@ -1,4 +1,4 @@
-package com.example.uibasics;
+package com.humbl.imuapp;
 
 //import static androidx.core.content.ContextCompat.getSystemService;
 import android.annotation.SuppressLint;
@@ -27,6 +27,8 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+
+
 
 public class MainActivity extends AppCompatActivity implements RecordFragment.OnRecordControlListener {
 

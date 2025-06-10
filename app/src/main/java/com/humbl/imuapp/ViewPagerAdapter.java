@@ -1,4 +1,4 @@
-package com.example.uibasics;
+package com.humbl.imuapp;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;

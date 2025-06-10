@@ -1,22 +1,15 @@
-package com.example.uibasics;
+package com.humbl.imuapp;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
-
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
-
 import java.io.File;
 import java.util.ArrayList;
 import android.os.Environment;
@@ -25,32 +18,51 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SynchronizedData_BackgroundService extends Service {
-    private SynchronizedDataCollector dataCollector;
-    private int pendingEventRowIndex = -1;
+    private SynchronizedDataCollector dataCollector; //Holds data being collected in the background (as an instance)
+    private final Map<Long, Integer> eventTimestampToRowIndex = new HashMap<>(); // Maps each event timestamp to the row index it was written to - for keeping track of event timestamps for event descriptions
+    public static String lastRecordingZipPath; //Tracks file path of the last saved zip file
 
-    private final Map<Long, Integer> eventTimestampToRowIndex = new HashMap<>(); //for keeping track of event timestamps for event descriptions
-    public static String lastRecordingZipPath; // Static variable for easy access
-
+    //Service has been initialized - only once per lifecycle
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d("SynchronizedDataService", "Service created");
     }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d("SynchronizedDataService", "onStartCommand called");
 
-        if (intent != null) {
+        // Initialize the recording. Null checking -  only if intent and action are non-null
+        if (intent != null && intent.getAction() == null) {
+
+            //Notification required to be displayed for background service (collecting of IMU data in background)
+            Notification notification = createNotification();
+            startForeground(1, notification);
+            Log.d("SynchronizedDataService", "Recording service starting...");
+
+            //Get user settings from current window (Intent)
+            boolean isAccelEnabled = intent.getBooleanExtra("ACCEL_ENABLED", true);
+            boolean isGyroEnabled = intent.getBooleanExtra("GYRO_ENABLED", true);
+            boolean isGPSEnabled = intent.getBooleanExtra("GPS_ENABLED", false);
+            long recordingStartTime = System.currentTimeMillis();
+
+            //Create new dataExport instance to store collected data
+            DataExport dataExport = new DataExport();
+
+            //Initialize and start the data collector
+            dataCollector = new SynchronizedDataCollector(
+                    this, dataExport, isAccelEnabled, isGyroEnabled, isGPSEnabled, recordingStartTime, null
+            );
+            dataCollector.start(); //Begin sensor listeners
+
+            Log.d("SynchronizedDataService", "DataCollector initialized: " + (dataCollector != null));
+        }
+
+        //Handles the possible actions by the user
+        if (intent != null && intent.getAction() != null) {
             String action = intent.getAction();
 
-            if ("ACTION_EXPORT_DATA".equals(action)) {
-                String recordingName = intent.getStringExtra("RECORDING_NAME");
-                Log.d("SynchronizedDataService", "Received export request for: " + recordingName);
-                exportRecording(recordingName);
-                return START_NOT_STICKY;
-
-            }
+            //Event TimeStamp: Records event timestamp in appropriate row
             if ("ACTION_RECORD_EVENT".equals(action)) {
                 long eventTimestamp = intent.getLongExtra("EVENT_TIMESTAMP", -1);
                 if (eventTimestamp != -1 && dataCollector != null) {
@@ -72,13 +84,14 @@ public class SynchronizedData_BackgroundService extends Service {
                         lastRow[11] = String.valueOf(eventTimestamp);
                         Log.d("SynchronizedDataService", "Event time set in row " + targetIndex + ": " + String.join(",", lastRow));
                     }
-
-
                 } else {
                     Log.d("SynchronizedDataService", "Event ignored: dataCollector is null or invalid timestamp.");
                 }
                 return START_NOT_STICKY;
-            } else if ("ACTION_ADD_EVENT_DESCRIPTION".equals(action)) {
+            }
+
+            //Event Description: Prompts user for description and adds the description to the same row as the associated event
+            if ("ACTION_ADD_EVENT_DESCRIPTION".equals(action)) {
                 String desc = intent.getStringExtra("EVENT_DESCRIPTION");
                 long timestamp = intent.getLongExtra("EVENT_TIMESTAMP", -1);
 
@@ -105,33 +118,18 @@ public class SynchronizedData_BackgroundService extends Service {
                 }
                 return START_NOT_STICKY;
             }
+
+            // Export/Save handling
+            if ("ACTION_EXPORT_DATA".equals(action)) {
+                String recordingName = intent.getStringExtra("RECORDING_NAME");
+                Log.d("SynchronizedDataService", "Received export request for: " + recordingName);
+                exportRecording(recordingName);
+                return START_NOT_STICKY; //returns start_not_sticky so that when you hit export it doesn't just restart the service - you need to manually restart it (only for export)
+            }
         }
 
-        // Recording start logic
-        Notification notification = createNotification();
-        startForeground(1, notification);
-
-        Log.d("SynchronizedDataService", "Recording service starting...");
-
-        boolean isAccelEnabled = intent.getBooleanExtra("ACCEL_ENABLED", true);
-        boolean isGyroEnabled = intent.getBooleanExtra("GYRO_ENABLED", true);
-        boolean isGPSEnabled = intent.getBooleanExtra("GPS_ENABLED", false);
-        Log.d("SynchronizedDataService", "Accel: " + isAccelEnabled + " Gyro: " + isGyroEnabled + " GPS: " + isGPSEnabled);
-
-        long recordingStartTime = System.currentTimeMillis();
-        DataExport dataExport = new DataExport();
-
-        dataCollector = new SynchronizedDataCollector(
-                this, dataExport, isAccelEnabled, isGyroEnabled, isGPSEnabled, recordingStartTime, null
-        );
-        dataCollector.start();
-
-        Log.d("SynchronizedDataService", "DataCollector initialized: " + (dataCollector != null));
-
-        return START_STICKY;
+        return START_STICKY; //Restart the service if its killed.
     }
-
-
 
     private Notification createNotification() {
         String channelId = "recording_channel";
@@ -197,7 +195,7 @@ public class SynchronizedData_BackgroundService extends Service {
     public void onDestroy() {
         super.onDestroy();
         if (dataCollector != null) {
-            dataCollector.stop();
+            dataCollector.stop(); //stop collecting data i.e. destroy service
             Log.d("SynchronizedDataService", "Recording stopped, no file saved yet.");
         }
     }

@@ -1,4 +1,4 @@
-package com.example.uibasics;
+package com.example.imuapp;
 
 import org.junit.Test;
 

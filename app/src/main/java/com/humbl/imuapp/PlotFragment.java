@@ -1,9 +1,8 @@
-package com.example.uibasics;
+package com.humbl.imuapp;
 
 import android.graphics.Color;
 import android.os.Bundle;
 //import android.util.Log; //Uncomment for Log debugging statements
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;

@@ -1,4 +1,4 @@
-package com.example.uibasics;
+package com.humbl.imuapp;
 
 
 import android.util.Log;
@@ -11,9 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import android.content.Context;
-import android.media.MediaScannerConnection;
-import android.os.Environment;
 
 
 public class DataExport {
