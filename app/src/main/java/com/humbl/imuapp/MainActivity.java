@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 
-
 public class MainActivity extends AppCompatActivity implements RecordFragment.OnRecordControlListener {
 
     private DataExport dataLivePlot;
@@ -40,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     private SynchronizedDataCollector synchronizedDataCollector;
     private static final int REQUEST_STORAGE_PERMISSION = 1001;
     private String pendingRecordingNameForExport = null;
+
 
     private final BroadcastReceiver exportReceiver = new BroadcastReceiver() {
         @Override
@@ -81,13 +81,14 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(adapter.getTitle(position))
         ).attach();
+
     }
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     public void onStartRecording(boolean accel, boolean gyro, boolean gps) {
         //Log.d("MainActivity", "onStartRecording called with accel: " + accel + ", gyro: " + gyro + ", gps: " + gps); //Uncomment for debugging of user selection checkboxes
         String recordingName = // get this from your EditText
-                ((EditText) findViewById(R.id.editRecordingName)).getText().toString();
+                ((EditText) findViewById(R.id.editRecordingName)).getText().toString().trim();
 
         getSharedPreferences("MyPrefs", MODE_PRIVATE)
                 .edit()
@@ -309,6 +310,7 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         // Unregister export receiver
         unregisterReceiver(exportReceiver);
     }
+
 
 }
 

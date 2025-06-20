@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "866925038922",
+    "project_id": "humbl-imu-application",
+    "storage_bucket": "humbl-imu-application.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:866925038922:android:945bb006f948d359a4c5b3",
+        "android_client_info": {
+          "package_name": "com.humbl.imuapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvXfAI-xseEa15SE-zt7Z2Hf5-f4TNdF8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -14,13 +14,18 @@ import java.io.File;
 import java.util.ArrayList;
 import android.os.Environment;
 import android.media.MediaScannerConnection;
+import android.widget.Toast;
+
 import java.util.HashMap;
 import java.util.Map;
+//Importing AzureStorage class
+import com.humbl.imuapp.AzureStorage;
 
 public class SynchronizedData_BackgroundService extends Service {
     private SynchronizedDataCollector dataCollector; //Holds data being collected in the background (as an instance)
     private final Map<Long, Integer> eventTimestampToRowIndex = new HashMap<>(); // Maps each event timestamp to the row index it was written to - for keeping track of event timestamps for event descriptions
     public static String lastRecordingZipPath; //Tracks file path of the last saved zip file
+
 
     //Service has been initialized - only once per lifecycle
     @Override
@@ -83,6 +88,34 @@ public class SynchronizedData_BackgroundService extends Service {
                         }
                         lastRow[11] = String.valueOf(eventTimestamp);
                         Log.d("SynchronizedDataService", "Event time set in row " + targetIndex + ": " + String.join(",", lastRow));
+
+                        //Update the cloud
+                        try {
+                            long gpsTimestamp = Long.parseLong(lastRow[9]);
+                            double latitude = Double.parseDouble(lastRow[10]);
+                            double longitude = Double.parseDouble(lastRow[11]);
+
+                            // Validation
+                            if ((latitude != 0.0 || longitude != 0.0) &&
+                                    Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+
+                                // Build event object
+                                Map<String, Object> event = new HashMap<>();
+                                event.put("timestamp_gps", gpsTimestamp);
+                                event.put("latitude", latitude);
+                                event.put("longitude", longitude);
+                                event.put("event_time", eventTimestamp);
+
+                                //TODO: Implement upload to the cloud or to ArgGIS using the MAP/Hashmap
+
+                            } else {
+                                Log.w("EventUpload", "Skipping upload: GPS data invalid or unavailable.");
+                            }
+
+                        } catch (Exception e) {
+                            Log.e("EventUpload", "Failed to parse GPS or event data", e);
+                        }
+
                     }
                 } else {
                     Log.d("SynchronizedDataService", "Event ignored: dataCollector is null or invalid timestamp.");
@@ -176,12 +209,37 @@ public class SynchronizedData_BackgroundService extends Service {
                         null,
                         (path, uri) -> Log.d("SynchronizedDataService", "Scanned to MediaStore: " + uri)
                 );
+                //Call SasTokenService to get temporary access token for upload to Azure cloud
+                String filename = zipFile.getName();
 
-                // Notify MainActivity export is done
-                Intent doneIntent = new Intent("EXPORT_COMPLETED");
-                doneIntent.putExtra("ZIP_PATH", lastRecordingZipPath);
-                sendBroadcast(doneIntent);
+                SasTokenService.requestSasUrl(filename, new SasTokenService.SasTokenCallback() {
+                    @Override
+                    public void onSuccess(String sasUrl) {
+                        boolean success = AzureStorage.uploadCsvToBlob(zipFile.getAbsolutePath(), sasUrl);
+                        Log.d("AzureUpload", "Upload success: " + success);
 
+                        Intent doneIntent = new Intent("EXPORT_COMPLETED");
+                        doneIntent.putExtra("ZIP_PATH", lastRecordingZipPath);
+                        doneIntent.putExtra("UPLOAD_SUCCESS", success);
+                        sendBroadcast(doneIntent);
+                    }
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e("AzureUpload", "Failed to get SAS URL", e);
+
+                        // Notify MainActivity of failure
+                        Intent failedIntent = new Intent("EXPORT_COMPLETED");
+                        failedIntent.putExtra("ZIP_PATH", lastRecordingZipPath);
+                        failedIntent.putExtra("UPLOAD_SUCCESS", false);
+                        sendBroadcast(failedIntent);
+
+                        // Show Toast: must run on main thread
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            Toast.makeText(getApplicationContext(),
+                                    "Upload failed. File saved to Downloads.", Toast.LENGTH_LONG).show(); //Failure message to UI to notify failure
+                        });
+                    }
+                });
                 Log.d("SynchronizedDataService", "Export complete: " + lastRecordingZipPath);
             } else {
                 Log.e("SynchronizedDataService", "Export failed");
@@ -229,4 +287,7 @@ public class SynchronizedData_BackgroundService extends Service {
         Log.d("MainActivity", "Final unique filename: " + numberedFile.getName());
         return numberedFile;
     }
+
+    //TODO: Create method for uploading to the cloud -- coordinate with TODO above.
+
 }
