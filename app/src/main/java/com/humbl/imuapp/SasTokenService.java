@@ -14,7 +14,7 @@ public class SasTokenService {
         void onFailure(Exception e);
     }
 
-    public static void requestSasUrl(String filename, SasTokenCallback callback) {
+    public static void requestSasUrl(String container, String filename, SasTokenCallback callback) {
         new Thread(() -> {
             int maxRetries = 3;
             int attempts = 0;
@@ -24,14 +24,16 @@ public class SasTokenService {
                 try {
                     attempts++;
 
+                    String encodedContainer = URLEncoder.encode(container, "UTF-8");
                     String encodedFilename = URLEncoder.encode(filename, "UTF-8");
-                    String urlStr = "https://imu-sas-api.azurewebsites.net/api/GetSasToken?filename=" + encodedFilename;
-                    URL url = new URL(urlStr);
+                    String urlStr = "https://imu-sas-api.azurewebsites.net/api/GetSasToken?container=" +
+                            encodedContainer + "&filename=" + encodedFilename;
 
+                    URL url = new URL(urlStr);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("GET");
-                    conn.setConnectTimeout(5000); // 5 seconds
-                    conn.setReadTimeout(5000);    // 5 seconds
+                    conn.setConnectTimeout(5000);
+                    conn.setReadTimeout(5000);
 
                     int responseCode = conn.getResponseCode();
                     Log.d("SasTokenService", "HTTP response code: " + responseCode);
@@ -43,7 +45,6 @@ public class SasTokenService {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                     StringBuilder response = new StringBuilder();
                     String line;
-
                     while ((line = reader.readLine()) != null) {
                         response.append(line);
                     }
@@ -62,9 +63,8 @@ public class SasTokenService {
                     }
 
                     try {
-                        Thread.sleep(1000); // wait 1 sec before retrying
-                    } catch (InterruptedException ignored) {
-                    }
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ignored) {}
                 }
             }
         }).start();

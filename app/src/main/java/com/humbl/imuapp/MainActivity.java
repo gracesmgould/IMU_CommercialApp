@@ -57,6 +57,15 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //Getting unique ID for the device for uploads to the cloud
+        SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
+        String deviceId = prefs.getString("DEVICE_ID", null);
+
+        if (deviceId == null) {
+            deviceId = java.util.UUID.randomUUID().toString(); // Secure, anonymous
+            prefs.edit().putString("DEVICE_ID", deviceId).apply();
+        }
+
         //Checking if gyroscope is on the device - toast message if not available
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         Sensor gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -194,23 +203,15 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     //Stop the background service from recording
     @Override
     public void onStopRecording() {
-        String recordingName = ((EditText) findViewById(R.id.editRecordingName)).getText().toString();
-
-        // Check storage permission (API 24–28 needs it for Downloads)
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
-            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                // Store recording name to export after permission is granted
-                pendingRecordingNameForExport = recordingName;
-                requestPermissions(
-                        new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        REQUEST_STORAGE_PERMISSION
-                );
-                return; // wait for permission result
-            }
+        // Stop only local collector (plotting)
+        if (synchronizedDataCollector != null) {
+            synchronizedDataCollector.stop();
         }
 
-        exportAndStop(recordingName);
+        // Stop background data collector (sensor capture)
+        Intent pauseIntent = new Intent(this, SynchronizedData_BackgroundService.class);
+        pauseIntent.setAction("ACTION_STOP_RECORDING");
+        startService(pauseIntent); // Add handling in service
     }
 
 

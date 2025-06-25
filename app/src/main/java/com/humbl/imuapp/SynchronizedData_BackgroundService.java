@@ -5,74 +5,78 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
-import android.os.IBinder;
-import android.util.Log;
-import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
-import java.io.File;
-import java.util.ArrayList;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
 import android.media.MediaScannerConnection;
+import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
+
+import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-//Importing AzureStorage class
-import com.humbl.imuapp.AzureStorage;
+import java.util.UUID;
 
 public class SynchronizedData_BackgroundService extends Service {
-    private SynchronizedDataCollector dataCollector; //Holds data being collected in the background (as an instance)
-    private final Map<Long, Integer> eventTimestampToRowIndex = new HashMap<>(); // Maps each event timestamp to the row index it was written to - for keeping track of event timestamps for event descriptions
-    public static String lastRecordingZipPath; //Tracks file path of the last saved zip file
+    private SynchronizedDataCollector dataCollector;
+    private final Map<Long, Integer> eventTimestampToRowIndex = new HashMap<>();
+    public static String lastRecordingZipPath;
+    public static final String ACTION_RECORD_EVENT = "ACTION_RECORD_EVENT";
+    public static final String ACTION_ADD_EVENT_DESCRIPTION = "ACTION_ADD_EVENT_DESCRIPTION";
+    public static final String ACTION_EXPORT_DATA = "ACTION_EXPORT_DATA";
+    public static final String ACTION_STOP_RECORDING = "ACTION_STOP_RECORDING";
 
+    private static final int LATITUDE_INDEX = 10;
+    private static final int LONGITUDE_INDEX = 11;
+    private static final int EVENT_DESC_INDEX = 12;
 
-    //Service has been initialized - only once per lifecycle
+    private final List<GeoJsonHelper.EventPoint> recentPins = new ArrayList<GeoJsonHelper.EventPoint>();
+
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d("SynchronizedDataService", "Service created");
     }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d("SynchronizedDataService", "onStartCommand called");
+        if (intent != null) {
+            Log.d("SynchronizedDataService", "Intent action: " + intent.getAction());
+        }
 
-        // Initialize the recording. Null checking -  only if intent and action are non-null
         if (intent != null && intent.getAction() == null) {
-
-            //Notification required to be displayed for background service (collecting of IMU data in background)
             Notification notification = createNotification();
             startForeground(1, notification);
-            Log.d("SynchronizedDataService", "Recording service starting...");
 
-            //Get user settings from current window (Intent)
             boolean isAccelEnabled = intent.getBooleanExtra("ACCEL_ENABLED", true);
             boolean isGyroEnabled = intent.getBooleanExtra("GYRO_ENABLED", true);
             boolean isGPSEnabled = intent.getBooleanExtra("GPS_ENABLED", false);
             long recordingStartTime = System.currentTimeMillis();
 
-            //Create new dataExport instance to store collected data
             DataExport dataExport = new DataExport();
 
-            //Initialize and start the data collector
             dataCollector = new SynchronizedDataCollector(
                     this, dataExport, isAccelEnabled, isGyroEnabled, isGPSEnabled, recordingStartTime, null
             );
-            dataCollector.start(); //Begin sensor listeners
-
-            Log.d("SynchronizedDataService", "DataCollector initialized: " + (dataCollector != null));
+            dataCollector.start();
         }
 
-        //Handles the possible actions by the user
         if (intent != null && intent.getAction() != null) {
             String action = intent.getAction();
 
-            //Event TimeStamp: Records event timestamp in appropriate row
-            if ("ACTION_RECORD_EVENT".equals(action)) {
+            if (ACTION_RECORD_EVENT.equals(action)) {
                 long eventTimestamp = intent.getLongExtra("EVENT_TIMESTAMP", -1);
-                if (eventTimestamp != -1 && dataCollector != null) {
-                    Log.d("SynchronizedDataService", "Recording event at: " + eventTimestamp);
+                long clockTime = System.currentTimeMillis();
 
+                if (eventTimestamp != -1 && dataCollector != null) {
                     DataExport dataExport = dataCollector.getDataExport();
                     dataExport.addEvent(eventTimestamp);
 
@@ -87,50 +91,38 @@ public class SynchronizedData_BackgroundService extends Service {
                             rows.set(targetIndex, lastRow);
                         }
                         lastRow[11] = String.valueOf(eventTimestamp);
-                        Log.d("SynchronizedDataService", "Event time set in row " + targetIndex + ": " + String.join(",", lastRow));
 
-                        //Update the cloud
-                        try {
-                            long gpsTimestamp = Long.parseLong(lastRow[9]);
-                            double latitude = Double.parseDouble(lastRow[10]);
-                            double longitude = Double.parseDouble(lastRow[11]);
+                        double testLatitude = 49.2606;
+                        double testLongitude = -123.2460;
 
-                            // Validation
-                            if ((latitude != 0.0 || longitude != 0.0) &&
-                                    Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+                        recentPins.add(new GeoJsonHelper.EventPoint(testLatitude, testLongitude, clockTime));
+                        long cutoff = System.currentTimeMillis() - 30 * 60 * 1000;
+                        recentPins.removeIf(p -> p.timestamp < cutoff);
 
-                                // Build event object
-                                Map<String, Object> event = new HashMap<>();
-                                event.put("timestamp_gps", gpsTimestamp);
-                                event.put("latitude", latitude);
-                                event.put("longitude", longitude);
-                                event.put("event_time", eventTimestamp);
+                        String uniqueId = getAnonymousUserId(); // method below
+                        String timestamp = String.valueOf(System.currentTimeMillis());
+                        String filename = "event_" + uniqueId + "_" + timestamp + ".geojson";
 
-                                //TODO: Implement upload to the cloud or to ArgGIS using the MAP/Hashmap
-
-                            } else {
-                                Log.w("EventUpload", "Skipping upload: GPS data invalid or unavailable.");
+                        SasTokenService.requestSasUrl("gpsdata", filename, new SasTokenService.SasTokenCallback() {
+                            @Override
+                            public void onSuccess(String sasUrl) {
+                                GeoJsonHelper.uploadLatestGeoJson(getApplicationContext(), recentPins, sasUrl);
                             }
 
-                        } catch (Exception e) {
-                            Log.e("EventUpload", "Failed to parse GPS or event data", e);
-                        }
-
+                            @Override
+                            public void onFailure(Exception e) {
+                                Log.e("GeoJsonUpload", "Failed to get SAS URL", e);
+                            }
+                        });
                     }
-                } else {
-                    Log.d("SynchronizedDataService", "Event ignored: dataCollector is null or invalid timestamp.");
                 }
                 return START_NOT_STICKY;
             }
-
-            //Event Description: Prompts user for description and adds the description to the same row as the associated event
-            if ("ACTION_ADD_EVENT_DESCRIPTION".equals(action)) {
+            if (ACTION_ADD_EVENT_DESCRIPTION.equals(action)) {
                 String desc = intent.getStringExtra("EVENT_DESCRIPTION");
                 long timestamp = intent.getLongExtra("EVENT_TIMESTAMP", -1);
 
                 if (desc != null && timestamp != -1 && dataCollector != null) {
-                    Log.d("SynchronizedDataService", "Recording description: " + desc + " at " + timestamp);
-
                     ArrayList<String[]> rows = dataCollector.getDataExport().getSensorData("Synchronized");
                     Integer targetIndex = eventTimestampToRowIndex.get(timestamp);
 
@@ -140,79 +132,69 @@ public class SynchronizedData_BackgroundService extends Service {
                             targetRow = java.util.Arrays.copyOf(targetRow, 13);
                             rows.set(targetIndex, targetRow);
                         }
-                        targetRow[12] = desc.replace(",", " ");
-                        Log.d("SynchronizedDataService", "Description added to row " + targetIndex + ": " + String.join(",", targetRow));
-                    } else {
-                        Log.w("SynchronizedDataService", "No matching row found for event timestamp: " + timestamp);
+                        targetRow[EVENT_DESC_INDEX] = desc.replace(",", " ");
                     }
-
-                } else {
-                    Log.d("SynchronizedDataService", "Description ignored: missing data or collector");
                 }
                 return START_NOT_STICKY;
             }
 
-            // Export/Save handling
-            if ("ACTION_EXPORT_DATA".equals(action)) {
+            if (ACTION_STOP_RECORDING.equals(action)) {
+                if (dataCollector != null) {
+                    dataCollector.stop(); // Stop sensor updates, retain data
+                    Log.d("SynchronizedDataService", "Recording stopped, data retained.");
+                }
+                return START_NOT_STICKY;
+            }
+
+            if (ACTION_EXPORT_DATA.equals(action)) {
                 String recordingName = intent.getStringExtra("RECORDING_NAME");
-                Log.d("SynchronizedDataService", "Received export request for: " + recordingName);
+                Log.d("SynchronizedDataService", "ACTION_EXPORT_DATA matched. Recording name: " + recordingName);
                 exportRecording(recordingName);
-                return START_NOT_STICKY; //returns start_not_sticky so that when you hit export it doesn't just restart the service - you need to manually restart it (only for export)
+                return START_NOT_STICKY;
             }
         }
 
-        return START_STICKY; //Restart the service if its killed.
+        return START_STICKY;
     }
 
     private Notification createNotification() {
         String channelId = "recording_channel";
-        String channelName = "Recording";
         NotificationManager manager = getSystemService(NotificationManager.class);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    channelId,
-                    channelName,
-                    NotificationManager.IMPORTANCE_LOW
-            );
+                    channelId, "Recording", NotificationManager.IMPORTANCE_LOW);
             manager.createNotificationChannel(channel);
         }
 
         return new NotificationCompat.Builder(this, channelId)
                 .setContentTitle("Recording Active")
                 .setContentText("Sensor data is being recorded in the background.")
-                .setSmallIcon(R.drawable.ic_launcher_background) //HuMBL background icon
-                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setSmallIcon(R.drawable.ic_launcher_background)
                 .build();
     }
+
     private void exportRecording(String recordingName) {
         if (dataCollector != null) {
-            Log.d("SynchronizedDataService", "DataCollector is not null, proceeding to export.");
             DataExport dataExport = dataCollector.getDataExport();
-
-            // Public Downloads directory
             File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             if (!downloadsDir.exists()) downloadsDir.mkdirs();
 
-            // Create unique filename in Downloads
             File zipFile = getUniqueFile(downloadsDir, recordingName, ".zip");
-
-            Log.d("SynchronizedDataService", "Starting export to: " + zipFile.getAbsolutePath());
 
             if (dataExport.exportAsZip(zipFile)) {
                 lastRecordingZipPath = zipFile.getAbsolutePath();
 
-                // Scan file so it's visible to system and file browsers
                 MediaScannerConnection.scanFile(
                         this,
                         new String[]{zipFile.getAbsolutePath()},
                         null,
                         (path, uri) -> Log.d("SynchronizedDataService", "Scanned to MediaStore: " + uri)
                 );
-                //Call SasTokenService to get temporary access token for upload to Azure cloud
+
                 String filename = zipFile.getName();
 
-                SasTokenService.requestSasUrl(filename, new SasTokenService.SasTokenCallback() {
+                SasTokenService.requestSasUrl("appdata", filename, new SasTokenService.SasTokenCallback() {
                     @Override
                     public void onSuccess(String sasUrl) {
                         boolean success = AzureStorage.uploadCsvToBlob(zipFile.getAbsolutePath(), sasUrl);
@@ -223,29 +205,23 @@ public class SynchronizedData_BackgroundService extends Service {
                         doneIntent.putExtra("UPLOAD_SUCCESS", success);
                         sendBroadcast(doneIntent);
                     }
+
                     @Override
                     public void onFailure(Exception e) {
                         Log.e("AzureUpload", "Failed to get SAS URL", e);
 
-                        // Notify MainActivity of failure
                         Intent failedIntent = new Intent("EXPORT_COMPLETED");
                         failedIntent.putExtra("ZIP_PATH", lastRecordingZipPath);
                         failedIntent.putExtra("UPLOAD_SUCCESS", false);
                         sendBroadcast(failedIntent);
 
-                        // Show Toast: must run on main thread
-                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                            Toast.makeText(getApplicationContext(),
-                                    "Upload failed. File saved to Downloads.", Toast.LENGTH_LONG).show(); //Failure message to UI to notify failure
-                        });
+                        new Handler(Looper.getMainLooper()).post(() ->
+                                Toast.makeText(getApplicationContext(),
+                                        "Upload failed. File saved to Downloads.", Toast.LENGTH_LONG).show()
+                        );
                     }
                 });
-                Log.d("SynchronizedDataService", "Export complete: " + lastRecordingZipPath);
-            } else {
-                Log.e("SynchronizedDataService", "Export failed");
             }
-        } else {
-            Log.d("SynchronizedDataService", "DataCollector is NULL! Cannot export.");
         }
     }
 
@@ -253,41 +229,37 @@ public class SynchronizedData_BackgroundService extends Service {
     public void onDestroy() {
         super.onDestroy();
         if (dataCollector != null) {
-            dataCollector.stop(); //stop collecting data i.e. destroy service
-            Log.d("SynchronizedDataService", "Recording stopped, no file saved yet.");
+            Log.w("SynchronizedDataService", "dataCollector is null — cannot export.");
+            dataCollector.stop();
         }
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        // Not a bound service
         return null;
     }
-    //getUniqueFile to prevent overwriting of the same file name
+
     private File getUniqueFile(File dir, String baseName, String extension) {
         File file = new File(dir, baseName + extension);
-        Log.d("MainActivity", "Checking for file: " + file.getAbsolutePath());
-
-        // Check if the original file exists
-        if (!file.exists()) {
-            Log.d("MainActivity", "Original file does not exist. Using: " + file.getName());
-            return file;
-        }
-
-        // If it does exist, start numbering
+        if (!file.exists()) return file;
         int counter = 1;
         File numberedFile;
         do {
             numberedFile = new File(dir, baseName + "(" + counter + ")" + extension);
-            Log.d("MainActivity", "Trying numbered file: " + numberedFile.getName());
             counter++;
         } while (numberedFile.exists());
-
-        Log.d("MainActivity", "Final unique filename: " + numberedFile.getName());
         return numberedFile;
     }
+    private String getAnonymousUserId() {
+        SharedPreferences prefs = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+        String userId = prefs.getString("ANON_USER_ID", null);
+        if (userId == null) {
+            userId = UUID.randomUUID().toString(); // Generate a one-time anonymous ID
+            prefs.edit().putString("ANON_USER_ID", userId).apply();
+        }
+        return userId;
+    }
 
-    //TODO: Create method for uploading to the cloud -- coordinate with TODO above.
 
 }
