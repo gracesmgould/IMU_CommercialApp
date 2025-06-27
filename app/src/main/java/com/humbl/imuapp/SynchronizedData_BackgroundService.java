@@ -107,11 +107,13 @@ public class SynchronizedData_BackgroundService extends Service {
                             @Override
                             public void onSuccess(String sasUrl) {
                                 GeoJsonHelper.uploadLatestGeoJson(getApplicationContext(), recentPins, sasUrl);
+                                recentPins.clear();
                             }
 
                             @Override
                             public void onFailure(Exception e) {
                                 Log.e("GeoJsonUpload", "Failed to get SAS URL", e);
+                                recentPins.clear();
                             }
                         });
                     }
