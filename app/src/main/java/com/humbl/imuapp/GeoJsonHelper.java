@@ -45,7 +45,7 @@ public class GeoJsonHelper {
 
                 // Properties
                 JSONObject properties = new JSONObject();
-                properties.put("time_Stamp", formatTimestamp(pin.timestamp));
+                properties.put("event_time", formatTimestamp(pin.timestamp));
 
                 feature.put("geometry", geometry);
                 feature.put("properties", properties);
@@ -56,6 +56,15 @@ public class GeoJsonHelper {
             JSONObject featureCollection = new JSONObject();
             featureCollection.put("type", "FeatureCollection");
             featureCollection.put("features", featuresArray);
+
+            /*// Add CRS for ArcGIS Pro compatibility
+            JSONObject crs = new JSONObject();
+            crs.put("type", "name");
+            JSONObject crsProps = new JSONObject();
+            crsProps.put("name", "EPSG:4326");
+            crs.put("properties", crsProps);
+            featureCollection.put("crs", crs);*/
+
 
             // Write to cache file
             File geojsonFile = new File(context.getCacheDir(), "latest.geojson");
