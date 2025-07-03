@@ -58,7 +58,7 @@ public class SynchronizedData_BackgroundService extends Service {
 
             boolean isAccelEnabled = intent.getBooleanExtra("ACCEL_ENABLED", true);
             boolean isGyroEnabled = intent.getBooleanExtra("GYRO_ENABLED", true);
-            boolean isGPSEnabled = intent.getBooleanExtra("GPS_ENABLED", false);
+            boolean isGPSEnabled = intent.getBooleanExtra("GPS_ENABLED", true); //Not sure if this is supposed to be true or false here
             long recordingStartTime = System.currentTimeMillis();
 
             DataExport dataExport = new DataExport();
@@ -92,10 +92,15 @@ public class SynchronizedData_BackgroundService extends Service {
                         }
                         lastRow[11] = String.valueOf(eventTimestamp);
 
-                        double testLatitude = 49.2606;
-                        double testLongitude = -123.2460;
+                        double latitude = dataCollector.getLatitude();
+                        double longitude = dataCollector.getLongitude();
 
-                        recentPins.add(new GeoJsonHelper.EventPoint(testLatitude, testLongitude, clockTime));
+                        if (!dataCollector.hasValidGPSFix() || (latitude == 0.0 && longitude == 0.0)) {
+                            Log.w("GeoJSON", "Skipping GeoJSON pin: no valid GPS data");
+                            return START_NOT_STICKY;
+                        }
+
+                        recentPins.add(new GeoJsonHelper.EventPoint(latitude, longitude, clockTime));
                         long cutoff = System.currentTimeMillis() - 30 * 60 * 1000;
                         recentPins.removeIf(p -> p.timestamp < cutoff);
 

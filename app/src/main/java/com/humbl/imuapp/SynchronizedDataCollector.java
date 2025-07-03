@@ -63,6 +63,17 @@ public class SynchronizedDataCollector implements SensorEventListener {
         this.gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         this.locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
     }
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public boolean hasValidGPSFix() {
+        return hasGPSFix;
+    }
     public DataExport getDataExport() {
         return dataExport;
     }
@@ -91,15 +102,15 @@ public class SynchronizedDataCollector implements SensorEventListener {
                 ActivityCompat.requestPermissions(
                         (MainActivity) context,
                         new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        1
+                        MainActivity.REQUEST_LOCATION_PERMISSION
                 );
                 return; // Exit start() until permission granted
             }
             // Request location updates
             Log.d("SynchronizedDataCollector", "Requesting GPS location updates...");
             locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    1000, // 1 second interval
+                    LocationManager.NETWORK_PROVIDER,
+                    1000, //gps updates once every second
                     0,    // 0m min distance
                     locationListener
             );

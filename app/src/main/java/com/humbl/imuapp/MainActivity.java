@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     private DataExport dataLivePlot;
     private long recordingStartTime;
     private boolean isAccelEnabled, isGyroEnabled, isGPSEnabled;
-    private static final int REQUEST_LOCATION_PERMISSION = 1; //Request code for GPS permissions
+    public static final int REQUEST_LOCATION_PERMISSION = 1; //Request code for GPS permissions
     private PlotFragment plotFragment; //fragment to plot live data
     private SynchronizedDataCollector synchronizedDataCollector;
     private static final int REQUEST_STORAGE_PERMISSION = 1001;
@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity implements RecordFragment.On
     @Override
     public void onStartRecording(boolean accel, boolean gyro, boolean gps) {
         //Log.d("MainActivity", "onStartRecording called with accel: " + accel + ", gyro: " + gyro + ", gps: " + gps); //Uncomment for debugging of user selection checkboxes
-        String recordingName = // get this from your EditText
+        String recordingName = // get this from EditText where user enters recording name
                 ((EditText) findViewById(R.id.editRecordingName)).getText().toString().trim();
 
         getSharedPreferences("MyPrefs", MODE_PRIVATE)

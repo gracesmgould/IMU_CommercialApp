@@ -57,14 +57,6 @@ public class GeoJsonHelper {
             featureCollection.put("type", "FeatureCollection");
             featureCollection.put("features", featuresArray);
 
-            /*// Add CRS for ArcGIS Pro compatibility
-            JSONObject crs = new JSONObject();
-            crs.put("type", "name");
-            JSONObject crsProps = new JSONObject();
-            crsProps.put("name", "EPSG:4326");
-            crs.put("properties", crsProps);
-            featureCollection.put("crs", crs);*/
-
 
             // Write to cache file
             File geojsonFile = new File(context.getCacheDir(), "latest.geojson");
